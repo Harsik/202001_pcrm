@@ -190,13 +190,13 @@
 			<version>3.0</version>
 			</dependency> -->
 
-		<!-- cubrid driver -->
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-webmvc</artifactId>
 			<version>${spring.maven.artifact.version}</version>
 		</dependency>
 		
+		<!-- cubrid driver -->
 		<dependency>
 			<groupId>cubrid</groupId>
 			<artifactId>cubrid-jdbc</artifactId>

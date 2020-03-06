@@ -32,12 +32,12 @@
 	</bean> -->
 	 
 	<!-- mysql -->
-    <bean id="dataSource-mysql" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+    <!-- <bean id="dataSource-mysql" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
         <property name="driverClassName" value="${Globals.DriverClassName}"/>
         <property name="url" value="${Globals.Url}" />
         <property name="username" value="${Globals.UserName}"/>
         <property name="password" value="${Globals.Password}"/>
-    </bean>
+    </bean> -->
     
     <!-- Oracle -->
     <!-- <bean id="dataSource-oracle" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
@@ -65,12 +65,15 @@
     </bean> -->
 	
 	<!-- cubrid-->
-    <!-- <bean id="dataSource-softdb" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
-        <property name="driverClassName" value="${Globals.Softdb.DriverClassName}"/>
+    <bean id="dataSource-cubrid" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+        <!-- <property name="driverClassName" value="${Globals.Softdb.DriverClassName}"/> -->
+        <property name="driverClassName" value="${Globals.DriverClassName}"/>
         <property name="url" value="${Globals.Softdb.Url}" />
         <property name="username" value="${Globals.Softdb.UserName}"/>
         <property name="password" value="${Globals.Softdb.Password}"/>
-    </bean> -->
+    </bean>
+    
+    
     
 	<bean id="dataSourceSpied" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
 		<property name="driverClassName" value="${Globals.Softdb.DriverClassName}"/>
