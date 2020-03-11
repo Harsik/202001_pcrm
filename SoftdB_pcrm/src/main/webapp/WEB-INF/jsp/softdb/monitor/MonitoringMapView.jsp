@@ -234,7 +234,7 @@
 							">
 								<div style="position: absolute;">
 									<div style="position: relative; top: 10px; left: 10px;">
-										<img src="/sht_webapp/softdb/img/img_ptcity_logo.jpg" style="width:130px">
+										<img src="<c:url value='/'/>softdb/img/img_ptcity_logo.jpg" style="width:130px">
 									</div>
 								</div>
 								
@@ -318,7 +318,7 @@ function getLoc(id) {
 }
 
 var markerHtml = '<div style="position: relative; top: $yy1px; left: $xx1px;">' 
-	+ '<img src="' +<c:url value='/'/>+ 'softdb/img/google-marker-$marker.png" style="width:$widpx"></img></div>'
+	+ '<img src="<c:url value="/"/>softdb/img/google-marker-$marker.png" style="width:$widpx"></img></div>'
 	+ '<div onclick="javascript:getLoc(\'$id\')" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
 	+ '<p>$cnt</p></div>';
 	
