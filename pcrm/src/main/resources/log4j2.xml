@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Configuration>
+<Configuration>
+	<!-- Appenders -->
+	<Appenders>
+		<Console name="console" target="SYSTEM_OUT">
+			<PatternLayout pattern="%d %5p [%c] %m%n" />
+		</Console>
+	</Appenders>
+	
+    <appender name="console-infolog" class="org.apache.log4j.ConsoleAppender">
+        <layout class="org.apache.log4j.PatternLayout">
+            <param name="ConversionPattern" value="%d %5p %m%n" />
+        </layout>   
+    </appender>
+     
+	<Loggers>
+		<!-- Application Loggers -->
+	    <Logger name="first" level ="DEBUG" additivity="false">
+	        <appender-ref ref="console"/>
+	    </Logger>
+	    <!-- Query Loggers -->
+	    <Logger name="jdbc.sqlonly"  level ="INFO" additivity="false">  
+	        <appender-ref ref="console-infolog"/>  
+	    </Logger>
+	    <Logger name="jdbc.resultset" level ="ERROR"  additivity="false">  
+	        <appender-ref ref="console"/>  
+	    </Logger>
+	    <Logger name="org.springframework" level ="ERROR"  additivity="false">  
+	        <appender-ref ref="console"/>  
+	    </Logger>
+	    <Logger name="org.apache.commons" level ="ERROR"  additivity="false">  
+	        <appender-ref ref="console"/>  
+	    </Logger>
+	    <Logger name="org.mybatis.spring" level ="ERROR"  additivity="false">  
+	        <appender-ref ref="console"/>  
+	    </Logger>
+	    <Logger name="jdbc.resultsettable" level ="ERROR" additivity="false">  
+	        <appender-ref ref="console"/>  
+	    </Logger> 
+	     <Logger name="jdbc.audit" level ="ERROR" additivity="false">  
+	        <appender-ref ref="console"/>  
+	    </Logger>  
+		<Root level="debug">
+			<AppenderRef ref="console" />
+		</Root>
+	</Loggers>
+</Configuration>

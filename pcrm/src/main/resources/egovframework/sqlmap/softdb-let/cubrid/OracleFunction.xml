@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="OracleFunction">
+
+	<sql id="getFormatDate">
+		select 
+			DECODE(${p_date}, '', '', substr(${p_date}, 1, 4) 
+			|| '-' ||
+			substr(${p_date}, 5, 2) || '-' || substr(${p_date}, 7, 2)) 
+		from
+		db_root
+	</sql>
+	
+	<sql id="getFormatTime">
+		select 
+			substr(${p_time}, 1, 2) 
+			|| ':' || 
+			substr(${p_time},3, 2) 
+		from
+		db_root
+	</sql>
+	
+	<sql id="OracleFunction.getCodeNM">
+		select cd_nm from sm002 where tp_cd = ${p_tp_cd} and cd = ${p_cd}
+	</sql>
+	
+	<sql id="getUserNM">
+		select
+			case 
+				when ${p_org} = 'CC' then (select NVL(USR_NM,'') from om001 where USR_ID = ${p_usr_id})
+				when ${p_org} = 'AAO' then (select NVL(ORGFULLNAME,'') from om061 where UID_ = ${p_usr_id})
+				when ${p_org} = 'AAU' then (select NVL(USERFULLNAME,'') from om061 where UID_ = ${p_usr_id})
+				when ${p_org} = 'AAD' then (select NVL(DISPLAYNAME,'') from om061 where UID_ = ${p_usr_id})
+				else ${p_usr_id}
+			end
+		from db_root
+	</sql>
+	
+	<sql id="getFormatPhoneNum">
+		select
+			case
+				when LENGTH(${p_pn}) = 8 then (select substr(${p_pn}, 1, 4) || '-' || substr(${p_pn}, 5, 4) from db_root)
+				WHEN LENGTH(${p_pn}) = 9 THEN (SELECT SUBSTR(${p_pn}, 1, 2) || '-' || SUBSTR(${p_pn}, 3, 3) || '-' || SUBSTR(${p_pn}, 6, 4) FROM db_root)
+				WHEN LENGTH(${p_pn}) = 10 THEN (SELECT SUBSTR(${p_pn}, 1, 2) || '-' || SUBSTR(${p_pn}, 3, 4) || '-' || SUBSTR(${p_pn}, 7, 4) FROM db_root)
+				WHEN LENGTH(${p_pn}) = 11 THEN (SELECT SUBSTR(${p_pn}, 1, 3) || '-' || SUBSTR(${p_pn}, 4, 4) || '-' || SUBSTR(${p_pn}, 8, 4) FROM db_root)
+				else ${p_pn}
+			end
+		from db_root
+	</sql>
+	
+	<sql id="changeNumberFormat">
+		SELECT
+			CASE
+				WHEN ISNULL(${p_num}) = 1 THEN ''
+				WHEN LENGTH(${p_num}) <![CDATA[ < ]]> 4 THEN (
+						SELECT
+							(${p_num})
+						FROM
+							db_root
+					)
+				ELSE ${p_num}
+			END
+		FROM
+			db_root	
+	</sql>
+	
+	<sql id="getTypeCode">
+		select (
+			CASE 
+				WHEN ${GET_LVL}= 1 THEN (
+										 SELECT lpad(MAX(substr(CTG_CD,1,2))+1,2,'0')||'000000'
+										 FROM OM020
+										 WHERE CTG_LVL = 1
+										 AND PARNT_CD = ${GET_PARNT}
+										 )
+				WHEN ${GET_LVL} = 2 THEN (
+										  SELECT substr(${GET_PARNT},1,2)|| lpad(COUNT(*)+1,2,'0')||'0000'
+										  FROM OM020
+										  WHERE CTG_LVL = 2
+										  AND PARNT_CD = ${GET_PARNT}
+										 )
+		
+		
+				WHEN ${GET_LVL} = 3 THEN (
+										  SELECT substr(${GET_PARNT},1,4)|| lpad(COUNT(*)+1,2,'0')||'00'
+										  FROM OM020
+										  WHERE CTG_LVL = 3
+										  AND PARNT_CD = ${GET_PARNT}
+										 )
+		
+				WHEN ${GET_LVL} = 4 THEN (
+										  SELECT substr(${GET_PARNT},1,6)|| lpad(COUNT(*)+1,2,'0')
+										 )
+			END
+		
+				) AS typeCode
+		FROM OM020
+		WHERE CTG_LVL = 4
+		AND PARNT_CD = ${GET_PARNT}
+		from db_root
+	</sql>
+	
+	<sql id="getSecondToTime">
+		select (
+				CASE
+					WHEN ${sec} = null or ${sec} <![CDATA[<]]> 0 then '00:00:00'
+					else (
+						TO_CHAR(TRUNC( ${sec} /3600),'00') || ':' ||
+						TO_CHAR(TRUNC(MOD( ${sec} ,3600)/60),'00') || ':' ||
+						TO_CHAR(MOD( ${sec} ,60),'00')
+					)
+				end
+			   ) as formatTime
+		from db_root
+	</sql>
+	
+	<sql id="getFormat_HMS">
+		SELECT
+			TO_CHAR(TRUNC(${ss} / 60 / 60), '9,990') || ' :' || TO_CHAR(TRUNC((${ss} - TRUNC(${ss} / 60 / 60) * 60 * 60) / 60), '00') || ' :' || TO_CHAR(${ss} - (TRUNC(${ss} / 60 / 60) * 60 * 60 + TRUNC((${ss} - TRUNC(${ss} / 60 / 60) * 60 * 60) / 60) * 60), '00')
+		FROM
+			db_root
+	</sql>
+	
+	<sql id="getTypeNM">
+		SELECT CTG_CD_NM
+          FROM OM020
+         WHERE CTG_LVL = ${GET_LVL}
+           AND CTG_CD = ${GET_CD}
+	</sql>
+	
+</sqlMap>

@@ -1,0 +1,538 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+	<mapper namespace="softdb.monitor.mappers.Ch001">
+	
+
+	<sql id="counsellistTot">
+		SELECT COUNT(*) AS CNT FROM CH001 t1
+						left join cm005 t2 on t1.tckt_id = t2.resv_reg_tckt_id
+						left join cm003 t3 on t1.cust_id = t3.cust_id
+						left join CH001 t4 on t4.tckt_id = t2.out_tckt_id
+						left join cd001 t5 on t5.TCKT_ID = t1.tckt_id
+					WHERE 1 = 1
+					and t1.use_yn = 'Y'
+						<if test="cust_id != null and !cust_id.equals('')">
+						AND t1.cust_id = #{cust_id}
+						</if>
+		<!-- 조회조건 통화시간(단위:초) 추가 -->
+		<if test="call_Cnnct_Tm != null and !call_Cnnct_Tm.equals('') and call_End_Tm != null and !call_End_Tm.equals('')">
+            AND (CASE WHEN (TO_DATETIME(T1.CALL_END_TM, 'HH24MISS') - TO_DATETIME(T1.CALL_STRT_TM, 'HH24MISS')) >= 0 THEN ROUND((TO_DATETIME(T1.CALL_END_TM, 'HH24MISS') - TO_DATETIME(T1.CALL_STRT_TM, 'HH24MISS')) * 24 * 60 * 60, 0) ELSE 0 END) BETWEEN #{call_Cnnct_Tm} AND #{call_End_Tm} 
+    </if>
+    <!-- qa 상담품질 평가대상 조회 (이미 등록된 상담이력 제외) -->
+    <if test="srch_mode != null and srch_mode.equals('rec')">        
+            AND T1.TCKT_ID NOT IN (SELECT TCKT_ID FROM OD027 TSUB1 WHERE T1.TCKT_ID = TSUB1.TCKT_ID) 
+		</if> 
+    <!-- qa 1차 처리율 평가대상 조회 (이미 등록된 상담이력 제외) -->
+    <if test="srch_mode != null and srch_mode.equals('prc')">        
+            AND T1.TCKT_ID NOT IN (SELECT TCKT_ID FROM OD026 TSUB2 WHERE T1.TCKT_ID = TSUB2.TCKT_ID) 
+    </if>   
+		<if test="tel_num != null and !tel_num.equals('')">
+						and t1.sndr_cntct_infm like '%' || #{tel_num} || '%'
+		</if>
+		<if test="frDt != null and !frDt.equals('') and toDt != null and !toDt.equals('')">
+			<if test="srchDtType == null">
+						and t1.rcv_dt between #{frDt} and #{toDt}
+			</if>
+			<if test="srchDtType != null and srchDtType.equals('rcvDt')"> 
+						and t1.rcv_dt between #{frDt} and #{toDt}
+			</if>
+			<if test="srchDtType != null and srchDtType.equals('resvDt')">
+						and t2.resv_dt between #{frDt} and #{toDt}
+			</if>
+		</if>
+		<if test="srchtype != null and !srchval.equals('')">
+					<if test="srchtype.equals('all')">
+						and 
+						(
+							upper(t3.cust_nm) like '%' || upper(#{srchval}) || '%'
+							or t1.sndr_cntct_infm like '%' || #{srchval} || '%'
+							or t2.resv_cntct_infm like '%' || #{srchval} || '%'
+							or upper(t1.ACT_CONT) like '%' || #{srchval} || '%'
+							or upper(t1.qst_cont) like '%' || #{srchval} || '%'
+						)
+					</if>
+					<if test="srchtype.equals('custNm')">
+						and upper(t3.cust_nm) like '%' || upper(#{srchval}) || '%'
+					</if>
+					<if test="srchtype.equals('srchPhone')">
+						and upper(t1.sndr_cntct_infm) like '%' || upper(#{srchval}) || '%'
+					</if>
+					<if test="srchtype.equals('srchContent')">
+						and (upper(t1.ACT_CONT) like '%' || #{srchval} || '%'
+							    or upper(t1.qst_cont) like '%' || #{srchval} || '%')
+					</if>
+					<if test="srchtype.equals('resvPhone')">
+						and t2.resv_cntct_infm like '%' || #{srchval} || '%' 
+					</if>
+					<if test="srchtype.equals('srchKeyWord')">
+						and t5.EXT1_CD = #{keyWord}
+					</if>
+				</if>
+				<if test="selUsrId != null and !selUsrId.equals('all')">
+						and t1.RCV_USR_ID = #{selUsrId}
+				</if>
+				<if test="selActTypeCd != null and !selActTypeCd.equals('all')">
+						and t1.ACT_TYPE_CD = #{selActTypeCd}
+				</if>
+				<if test="selActStCd != null and !selActStCd.equals('all')">
+						and t1.ACT_ST_CD = #{selActStCd}
+				</if>
+
+				<if test="intv_lg_cd != null and !intv_lg_cd.equals('all')">
+						and t1.CTG_LG_CD = #{intv_lg_cd}
+				</if>
+				<if test="intv_md_cd != null and !intv_md_cd.equals('all')">
+						and t1.CTG_MD_CD = #{intv_md_cd}
+				</if>
+				<if test="intv_sm_cd != null and !intv_sm_cd.equals('all')">
+						and t1.CTG_SM_CD = #{intv_sm_cd}
+				</if>
+				<if test="call_gb_cd != null and !call_gb_cd.equals('all')">
+						and t1.CALL_GB_CD = #{call_gb_cd}
+				</if>
+				<if test="lang_cd != null and !lang_cd.equals('all')">
+						and t1.LANG_CD = #{lang_cd}
+				</if>
+				<if test="loc_yn != null and !loc_yn.equals('')">
+						and t3.loc_yn = #{loc_yn}
+				</if>
+				<if test="selChGbCd != null and !selChGbCd.equals('all')">
+						and t1.CH_GB_CD = #{selChGbCd}
+				</if>
+        <if test="rdy_Scnt_Frm != null and !rdy_Scnt_Frm.equals('') and rdy_Scnt_To != null and !rdy_Scnt_To.equals('')">
+            and NVL(T1.RDY_SCNT, 0) BETWEEN #{rdy_Scnt_Frm} AND #{rdy_Scnt_To}
+        </if>  
+	</sql>
+	
+	
+	<!-- 20190924 김주찬 페이징 처리 변경 : (#{rows}) -> ((#{rows}+0.0)) -->
+	<select id="counsellist" parameterType="map" resultType="egovMap">
+		<if test="rows != null and page != null">
+		<!-- SELECT *
+		FROM
+		( -->
+			SELECT A1.*
+				,		#{page} AS PAGENUM
+					    , CEIL((<include refid="counsellistTot" />) / (#{rows}+0.0)) TOTPAGECOUNT
+					    ,	(<include refid="counsellistTot" />) AS TOTROWCOUNT
+			FROM
+			(
+		</if>
+		<!-- 2020.01.10 hhs 상담이력 조회 오류 수정 -->
+				SELECT *
+				FROM
+				(
+					SELECT
+							t1.TCKT_ID
+						,	t1.recd_id
+						, t1.CALL_ID
+						, t1.RCV_DT
+						, t1.RCV_USR_ID
+						, t1.MOD_USR_ID
+  						,	NVL2( t1.RCV_DT, getFormatDate(t1.RCV_DT) || ' ' || getFormatTime(t1.RCV_TM), ' ') AS RCV_DT_FORMAT
+						,	t3.CORP_NM
+					<if test="rows != null and page != null">	
+						, t3.CUST_NM
+					</if>
+					<if test="rows == null and page == null">
+						, case when t3.CUST_NM IN ('고객','민원인','테스트') then t3.CUST_NM
+							else substr(t3.CUST_NM,1,1) || lpad('*',length(t3.CUST_NM)-2,'*') || substr(t3.CUST_NM, length(CUST_NM), 1) end as CUST_NM
+					</if>
+						, (select USR_NM from OM001 where USR_ID = t1.RCV_USR_ID) AS RCV_USR_NM
+						, (select CTI_LGN_ID from OM001 where USR_ID = t1.RCV_USR_ID) AS CTI_LGN_ID
+						, (
+							<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+								<property name="p_tp_cd" value="'90009'"/>  								
+								<property name="p_cd" value="t1.CH_GB_CD"/>  								
+							</include>
+						   ) AS CH_GB_NM
+						, (
+							<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+								<property name="p_tp_cd" value="'90014'"/>  								
+								<property name="p_cd" value="t1.ACT_TYPE_CD"/>  								
+							</include>
+						   ) AS ACT_TYPE_NM
+<!-- 						, getCodeNM(t1.CH_GB_CD, '90009') AS CH_GB_NM
+						, getCodeNM(t1.ACT_TYPE_CD, '90014') AS ACT_TYPE_NM -->
+						, NVL((select CD_NM from SM002 where TP_CD = '90013' AND CD = t1.ACT_ST_CD), '미완료') ACT_ST_NM
+						<!--, (SELECT ctg_cd_nm FROM om020 WHERE ctg_cd = t1.ctg_ex_cd AND ctg_lvl = '1') ||
+						(SELECT ' > ' || ctg_cd_nm FROM om020 WHERE ctg_cd = t1.ctg_lg_cd AND ctg_lvl = '1') ||
+						(SELECT ' > ' || ctg_cd_nm FROM om020 WHERE ctg_cd = t1.ctg_md_cd AND ctg_lvl = '2') ||
+						(SELECT ' > ' || ctg_cd_nm FROM om020 WHERE ctg_cd = t1.ctg_sm_cd AND ctg_lvl = '3')  AS intv_nm-->
+						
+						, (SELECT ctg_cd_nm FROM om020 WHERE ctg_cd = t1.ctg_lg_cd AND ctg_lvl = '1') ||
+							(SELECT ' > ' || ctg_cd_nm FROM om020 WHERE ctg_cd = t1.ctg_md_cd AND ctg_lvl = '2') ||
+							(SELECT ' > ' || ctg_cd_nm FROM om020 WHERE ctg_cd = t1.ctg_sm_cd AND ctg_lvl = '3') AS intv_nm
+							
+						<!--, (select CTG_CD_NM from OM020 where CTG_LVL = '1' and CTG_CD = t1.CTG_EX_CD)  as INTV_EX_NM
+						, (select CTG_CD_NM from OM020 where CTG_LVL = '2' and PARNT_CD = t1.CTG_EX_CD AND CTG_CD = t1.CTG_LG_CD)  as INTV_LG_NM  
+						, (select CTG_CD_NM from OM020 where CTG_LVL = '3' and PARNT_CD = t1.CTG_LG_CD AND CTG_CD = t1.CTG_MD_CD)  as INTV_MD_NM  
+						, (select CTG_CD_NM from OM020 where CTG_LVL = '4' and PARNT_CD = t1.CTG_MD_CD AND CTG_CD = t1.CTG_SM_CD)  as INTV_SM_NM-->
+						
+						, (select CTG_CD_NM from OM020 where CTG_LVL = '1' AND CTG_CD = t1.CTG_LG_CD)  as INTV_LG_NM
+						, (select CTG_CD_NM from OM020 where CTG_LVL = '2' and PARNT_CD = t1.CTG_LG_CD AND CTG_CD = t1.CTG_MD_CD)  as INTV_MD_NM
+						, (select CTG_CD_NM from OM020 where CTG_LVL = '3' and PARNT_CD = t1.CTG_MD_CD AND CTG_CD = t1.CTG_SM_CD)  as INTV_SM_NM
+						<!--, t1.CTG_EX_CD as INTV_EX_CD-->
+						, t1.CTG_LG_CD as INTV_LG_CD
+						, t1.CTG_MD_CD as INTV_MD_CD
+						, t1.CTG_SM_CD as INTV_SM_CD
+						, '' AS LANG_NM
+						, '' AS PPS_NM
+						, replace(replace((case when LENGTH(t1.qst_cont) > 18 then substr(t1.qst_cont, 0, 18) || '...' else t1.qst_cont end), CHR(10), ''), CHR(13), '') as rcv_cont_ttl
+						, t1.act_cont
+						, t1.qst_cont as rcv_cont
+						, (
+							CASE 
+						<!-- 2020.01.08 hhs is null 수정 -->
+						<!--	WHEN t2.RESV_DT is null THEN '' -->
+								WHEN (t2.RESV_DT is null OR t2.RESV_DT = '') THEN ''
+								ELSE 
+								(
+  									<include refid="softdb.monitor.mappers.OracleFunction.getFormatDate">
+										<property name="p_date" value="t2.RESV_DT"/>  								
+  									</include>
+  								) || ' ' ||
+  								(
+  									<include refid="softdb.monitor.mappers.OracleFunction.getFormatTime">
+										<property name="p_time" value="t2.RESV_TM"/>  								
+  									</include>
+  								)
+								
+							END
+						  ) AS RESV_DT_FORMAT
+						  , NVL2( 
+								t4.rcv_dt,
+								(
+  									<include refid="softdb.monitor.mappers.OracleFunction.getFormatDate">
+										<property name="p_date" value="t4.RCV_DT"/>  								
+  									</include>
+  								) || ' ' ||
+  								(
+  									<include refid="softdb.monitor.mappers.OracleFunction.getFormatTime">
+										<property name="p_time" value="t4.call_strt_tm"/>  								
+  									</include>
+  								), 
+								' '
+							   ) AS SEND_DT_FORMAT
+<!-- 						, (CASE WHEN t2.RESV_DT is null
+							THEN ''
+							ELSE getFormatDate(t2.RESV_DT) || ' ' || getFormatTime(t2.RESV_TM)
+							END
+							) AS RESV_DT_FORMAT
+ 						, NVL2( t4.rcv_dt, getFormatDate(t4.RCV_DT) || ' ' || getFormatTime(t4.call_strt_tm), ' ') AS SEND_DT_FORMAT -->
+						<if test="rows != null and page != null">	
+						, NVL2(
+								t1.sndr_cntct_infm, 
+								(
+  									<include refid="softdb.monitor.mappers.OracleFunction.getFormatPhoneNum">
+										<property name="p_pn" value="t1.sndr_cntct_infm"/>  								
+  									</include>
+  								), 
+								' '
+							   ) AS cntct_infm_format
+						<!-- , NVL2(t1.sndr_cntct_infm, getFormatPhoneNum(t1.sndr_cntct_infm), ' ') AS cntct_infm_format -->
+						</if>
+						<if test="rows == null and page == null">
+						, NVL2(
+								t1.sndr_cntct_infm,  
+								substr(
+										(
+		  									<include refid="softdb.monitor.mappers.OracleFunction.getFormatPhoneNum">
+												<property name="p_pn" value="t1.sndr_cntct_infm"/>  								
+		  									</include>
+		  								),
+										1,
+										length(
+												(
+				  									<include refid="softdb.monitor.mappers.OracleFunction.getFormatPhoneNum">
+														<property name="p_pn" value="t1.sndr_cntct_infm"/>  								
+				  									</include>
+				  								)
+											  ) - 4
+									   ) || rpad('*', 4, '*'),
+								''
+							   ) as cntct_infm_format
+						<!-- , NVL2(t1.sndr_cntct_infm,  substr(getFormatPhoneNum(t1.sndr_cntct_infm),1,length(getFormatPhoneNum(t1.sndr_cntct_infm))-4) || rpad('*',4,'*'), '')  as cntct_infm_format -->
+						</if>
+						, NVL2(
+								t2.resv_cntct_infm, 
+								(
+  									<include refid="softdb.monitor.mappers.OracleFunction.getFormatPhoneNum">
+										<property name="p_pn" value="t2.resv_cntct_infm"/>  								
+  									</include>
+  								), 
+								' '
+							   ) AS RESV_TEL_NO
+						<!-- , NVL2(t2.resv_cntct_infm, getFormatPhoneNum(t2.resv_cntct_infm), ' ') AS RESV_TEL_NO -->
+						, (SELECT cntr_cd FROM om001 WHERE usr_id = t1.rcv_usr_id) AS cntr_cd
+						, case when t1.call_gb_cd = '1' then 'IN' when t1.call_gb_cd = '2' then 'OUT' when t1.call_gb_cd = '3' then '콜백' end as CALL_GB_NM_ENG
+						, (
+							<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+								<property name="p_tp_cd" value="'90010'"/>  								
+								<property name="p_cd" value="T1.CALL_GB_CD"/>  								
+							</include>
+						   ) AS CALL_GB_NM
+						, 
+						  (
+						  	<include refid="softdb.monitor.mappers.OracleFunction.getSecondToTime">
+								<property name="sec" value="round(TIME_TO_SEC(t1.call_end_tm)-TIME_TO_SEC(t1.CALL_STRT_TM), 0)"/>  										
+							</include>
+						  ) 
+						  as CALL_TIME
+  						, (select USR_NM from OM001 where USR_ID = t1.MOD_USR_ID) AS MOD_USR_NM
+  						, NVL2(
+  								t1.MOD_DT, 
+  								(
+  									<include refid="softdb.monitor.mappers.OracleFunction.getFormatDate">
+										<property name="p_date" value="t1.MOD_DT"/>  								
+  									</include>
+  								) || ' ' ||
+  								(
+  									<include refid="softdb.monitor.mappers.OracleFunction.getFormatTime">
+										<property name="p_time" value="t1.MOD_TM"/>  								
+  									</include>
+  								), 
+  								' '
+  							   ) AS MOD_DT_FORMAT
+  						, (
+							<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+								<property name="p_tp_cd" value="'90043'"/>  								
+								<property name="p_cd" value="t3.cust_gb_cd"/>  								
+							</include>
+						   ) AS cst_type_nm
+  						, (
+							<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+								<property name="p_tp_cd" value="'90048'"/>  								
+								<property name="p_cd" value="t3.cst_comp_cd"/>  								
+							</include>
+						   ) AS CST_COMP_NM
+  						, t3.infm_yn
+  						, t3.loc_yn
+  						, '' AS TRNR_ACT_ST_NM
+						, NVL(T1.RDY_SCNT, 0) AS RDY_SCNT 
+						, t5.EXT1_CD as keywordcd 
+					FROM CH001 t1
+						left join cm005 t2 on t1.tckt_id = t2.resv_reg_tckt_id
+						left join cm003 t3 on t1.cust_id = t3.cust_id
+						left join CH001 t4 on t4.tckt_id = t2.out_tckt_id
+						left join cd001 t5 on t5.TCKT_ID = t1.tckt_id
+					WHERE 1 = 1
+						and t1.use_yn = 'Y'
+						<if test="cust_id != null and !cust_id.equals('')">
+						AND t1.cust_id = #{cust_id}
+						</if>
+		<!-- 조회조건 통화시간(단위:초) 추가 -->
+		<if test="call_Cnnct_Tm != null and !call_Cnnct_Tm.equals('') and call_End_Tm != null and !call_End_Tm.equals('')">
+            AND (CASE WHEN (TO_DATETIME(T1.CALL_END_TM, 'HH24MISS') - TO_DATETIME(T1.CALL_STRT_TM, 'HH24MISS')) >= 0 THEN ROUND((TO_DATETIME(T1.CALL_END_TM, 'HH24MISS') - TO_DATETIME(T1.CALL_STRT_TM, 'HH24MISS')) * 24 * 60 * 60, 0) ELSE 0 END) BETWEEN #{call_Cnnct_Tm} AND #{call_End_Tm} 
+    </if>
+    <!-- qa 상담품질 평가대상 조회 (이미 등록된 상담이력 제외) -->
+    <if test="srch_mode != null and srch_mode.equals('rec')">        
+            AND T1.TCKT_ID NOT IN (SELECT TCKT_ID FROM OD027 TSUB1 WHERE T1.TCKT_ID = TSUB1.TCKT_ID) 
+		</if> 
+    <!-- qa 1차 처리율 평가대상 조회 (이미 등록된 상담이력 제외) -->
+    <if test="srch_mode != null and srch_mode.equals('prc')">        
+            AND T1.TCKT_ID NOT IN (SELECT TCKT_ID FROM OD026 TSUB2 WHERE T1.TCKT_ID = TSUB2.TCKT_ID) 
+    </if>   
+		<if test="tel_num != null and !tel_num.equals('')">
+						and t1.sndr_cntct_infm like '%' || #{tel_num} || '%'
+		</if>
+		<if test="frDt != null and !frDt.equals('') and toDt != null and !toDt.equals('')">
+			<if test="srchDtType == null">
+						and t1.rcv_dt between #{frDt} and #{toDt}
+			</if>
+			<if test="srchDtType != null and srchDtType.equals('rcvDt')"> 
+						and t1.rcv_dt between #{frDt} and #{toDt}
+			</if>
+			<if test="srchDtType != null and srchDtType.equals('resvDt')">
+						and t2.resv_dt between #{frDt} and #{toDt}
+			</if>
+		</if>
+		<if test="srchtype != null and !srchval.equals('')">
+					<if test="srchtype.equals('all')">
+						and 
+						(
+							upper(t3.cust_nm) like '%' || upper(#{srchval}) || '%'
+							or t1.sndr_cntct_infm like '%' || #{srchval} || '%'
+							or t2.resv_cntct_infm like '%' || #{srchval} || '%'
+							or upper(t1.ACT_CONT) like '%' || #{srchval} || '%'
+							or upper(t1.qst_cont) like '%' || #{srchval} || '%'
+						)
+					</if>
+					<if test="srchtype.equals('custNm')">
+						and upper(t3.cust_nm) like '%' || upper(#{srchval}) || '%'
+					</if>
+					<if test="srchtype.equals('srchPhone')">
+						and upper(t1.sndr_cntct_infm) like '%' || upper(#{srchval}) || '%'
+					</if>
+					<if test="srchtype.equals('srchContent')">
+						and (upper(t1.ACT_CONT) like '%' || #{srchval} || '%'
+							    or upper(t1.qst_cont) like '%' || #{srchval} || '%')
+					</if>
+					<if test="srchtype.equals('resvPhone')">
+						and t2.resv_cntct_infm like '%' || #{srchval} || '%' 
+					</if>
+					<if test="srchtype.equals('srchKeyWord')">
+						and t5.EXT1_CD = #{keyWord}
+					</if>
+				</if>
+				<if test="selUsrId != null and !selUsrId.equals('all')">
+						and t1.RCV_USR_ID = #{selUsrId}
+				</if>
+				<if test="selActTypeCd != null and !selActTypeCd.equals('all')">
+						and t1.ACT_TYPE_CD = #{selActTypeCd}
+				</if>
+				<if test="selActStCd != null and !selActStCd.equals('all')">
+						and t1.ACT_ST_CD = #{selActStCd}
+				</if>
+				<if test="intv_lg_cd != null and !intv_lg_cd.equals('all')">
+						and t1.CTG_LG_CD = #{intv_lg_cd}
+				</if>
+				<if test="intv_md_cd != null and !intv_md_cd.equals('all')">
+						and t1.CTG_MD_CD = #{intv_md_cd}
+				</if>
+				<if test="intv_sm_cd != null and !intv_sm_cd.equals('all')">
+						and t1.CTG_SM_CD = #{intv_sm_cd}
+				</if>
+				<if test="call_gb_cd != null and !call_gb_cd.equals('all')">
+						and t1.CALL_GB_CD = #{call_gb_cd}
+				</if>
+				<if test="lang_cd != null and !lang_cd.equals('all')">
+						and t1.LANG_CD = #{lang_cd}
+				</if>
+				<if test="loc_yn != null and !loc_yn.equals('')">
+						and t3.loc_yn = #{loc_yn}
+				</if>
+				<if test="selChGbCd != null and !selChGbCd.equals('all')">
+						and t1.CH_GB_CD = #{selChGbCd}
+				</if>
+        <if test="rdy_Scnt_Frm != null and !rdy_Scnt_Frm.equals('') and rdy_Scnt_To != null and !rdy_Scnt_To.equals('')">
+            and NVL(T1.RDY_SCNT, 0) BETWEEN #{rdy_Scnt_Frm} AND #{rdy_Scnt_To}
+        </if>  
+        )
+		WHERE 1 = 1
+				<if test="usrGrdCd lt 60100">
+					AND cntr_cd = (SELECT cntr_cd FROM om001 WHERE usr_id = #{login_usr_id})
+				</if>
+				<if test="sidx != null and sord != null">
+				ORDER BY ${sidx} ${sord}
+				</if>
+				<if test="rows != null and page != null">
+					LIMIT #{rows} OFFSET #{rows}*(#{page}-1)
+			) A1
+			
+		</if>
+	</select>
+		
+	<select id="counsellistcnt" parameterType="map" resultType="map">
+		SELECT NVL(sum(case when call_gb_cd = '1' then 1 else 0 end), 0) as incnt
+				,	NVL(sum(case when call_gb_cd = '2' then 1 else 0 end), 0) as outcnt
+		FROM
+		(
+			SELECT
+					t1.call_gb_cd
+				,	(SELECT cntr_cd FROM om001 WHERE usr_id = t1.rcv_usr_id) AS cntr_cd
+			FROM CH001 t1 left join cm005 t2 on t1.tckt_id = t2.resv_reg_tckt_id
+						     left join cm003 t3 on t1.cust_id = t3.cust_id
+						     left join CH001 t4 on t4.tckt_id = t2.out_tckt_id
+						     left join cd001 t5 on t5.TCKT_ID = t1.tckt_id
+			WHERE 1 = 1
+				and t1.use_yn = 'Y'
+    <!-- 조회조건 통화시간(단위:초) 추가 -->
+    <if test="call_Cnnct_Tm != null and !call_Cnnct_Tm.equals('') and call_End_Tm != null and !call_End_Tm.equals('')">
+        AND (CASE WHEN (TO_DATETIME(T1.CALL_END_TM, 'HH24MISS') - TO_DATETIME(T1.CALL_STRT_TM, 'HH24MISS')) >= 0 THEN ROUND((TO_DATETIME(T1.CALL_END_TM, 'HH24MISS') - TO_DATETIME(T1.CALL_STRT_TM, 'HH24MISS')) * 24 * 60 * 60, 0) ELSE 0 END) BETWEEN #{call_Cnnct_Tm} AND #{call_End_Tm}
+    </if>
+    <!-- qa 상담품질 평가대상 조회 (이미 등록된 상담이력 제외) -->
+    <if test="srch_mode != null and srch_mode.equals('rec')">        
+        AND T1.TCKT_ID NOT IN (SELECT TCKT_ID FROM OD027 TSUB1 WHERE T1.TCKT_ID = TSUB1.TCKT_ID) 
+    </if>     
+    <!-- qa 1차 처리율 평가대상 조회 (이미 등록된 상담이력 제외) -->
+    <if test="srch_mode != null and srch_mode.equals('prc')">        
+        AND T1.TCKT_ID NOT IN (SELECT TCKT_ID FROM OD026 TSUB2 WHERE T1.TCKT_ID = TSUB2.TCKT_ID) 
+    </if>      
+    <if test="tel_num != null and !tel_num.equals('')">
+        and t1.sndr_cntct_infm like '%' || #{tel_num} || '%'
+    </if>        
+		<if test="resv != null">
+				and (t2.tckt_id is not null OR t2.tckt_id != '')
+		</if>
+		<if test="frDt != null and !frDt.equals('') and toDt != null and !toDt.equals('')">
+			<if test="srchDtType == null">
+				and t1.rcv_dt between #{frDt} and #{toDt}
+			</if>
+			<if test="srchDtType != null and srchDtType.equals('rcvDt')"> 
+				and t1.rcv_dt between #{frDt} and #{toDt}
+			</if>
+			<if test="srchDtType != null and srchDtType.equals('resvDt')">
+				and t2.resv_dt between #{frDt} and #{toDt}
+			</if>
+		</if>
+		<if test="srchtype != null and !srchval.equals('')">
+			<if test="srchtype.equals('all')">
+				and 
+				(
+						upper(t3.cust_nm) like '%' || upper(#{srchval}) || '%'
+					or 	upper(t3.corp_nm) like '%' || upper(#{srchval}) || '%'
+					or 	upper(t1.sndr_cntct_infm) like '%' || upper(#{srchval}) || '%'
+					or  upper(t1.ACT_CONT) like '%' || #{srchval} || '%'
+					or  upper(t1.qst_cont) like '%' || #{srchval} || '%'					
+				)
+			</if>
+			<if test="srchtype.equals('custNm')">
+				and upper(t3.cust_nm) like '%' || upper(#{srchval}) || '%'
+			</if>
+			<if test="srchtype.equals('corpNm')">
+				and upper(t3.corp_nm) like '%' || upper(#{srchval}) || '%'
+			</if>
+			<if test="srchtype.equals('srchPhone')">
+				and upper(t1.sndr_cntct_infm) like '%' || upper(#{srchval}) || '%'
+			</if>
+			<if test="srchtype.equals('srchContent')">
+				and (upper(t1.ACT_CONT) like '%' || #{srchval} || '%'
+				    or upper(t1.qst_cont) like '%' || #{srchval} || '%')
+			</if>
+			<if test="srchtype.equals('srchKeyWord')">
+				and t5.EXT1_CD = #{keyWord}
+			</if>	
+			
+		</if>
+		<if test="selUsrId != null and !selUsrId.equals('all')">
+				and t1.RCV_USR_ID = #{selUsrId}
+		</if>
+		<if test="selChGbCd != null and !selChGbCd.equals('all')">
+				and t1.CH_GB_CD = #{selChGbCd}
+		</if>
+		<if test="selActTypeCd != null and !selActTypeCd.equals('all')">
+				and t1.ACT_TYPE_CD = #{selActTypeCd}
+		</if>
+		<if test="selActStCd != null and !selActStCd.equals('all')">
+				and t1.ACT_ST_CD = #{selActStCd}
+		</if>
+		<if test="intv_lg_cd != null and !intv_lg_cd.equals('all')">
+				and t1.CTG_LG_CD = #{intv_lg_cd}
+		</if>
+		<if test="intv_md_cd != null and !intv_md_cd.equals('all')">
+				and t1.CTG_MD_CD = #{intv_md_cd}
+		</if>
+		<if test="intv_sm_cd != null and !intv_sm_cd.equals('all')">
+				and t1.CTG_SM_CD = #{intv_sm_cd}
+		</if>
+		<if test="call_gb_cd != null and !call_gb_cd.equals('all')">
+				and t1.CALL_GB_CD = #{call_gb_cd}
+		</if>
+		<if test="lang_cd != null and !lang_cd.equals('all')">
+				and t1.LANG_CD = #{lang_cd}
+		</if>
+		<if test="loc_yn != null and !loc_yn.equals('')">
+				and t3.loc_yn = #{loc_yn}
+		</if>
+    <if test="rdy_Scnt_Frm != null and !rdy_Scnt_Frm.equals('') and rdy_Scnt_To != null and !rdy_Scnt_To.equals('')">
+        and NVL(T1.RDY_SCNT, 0) BETWEEN #{rdy_Scnt_Frm} AND #{rdy_Scnt_To}
+    </if>  
+		)
+	</select>
+			
+</mapper>
