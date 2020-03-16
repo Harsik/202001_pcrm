@@ -4,7 +4,7 @@
 	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-	<mapper namespace="softdb.monitor.mappers.Om001">
+	<mapper namespace="softdb.common.mappers.Om001">
 	
 	<sql id="where">
 		 WHERE  1 = 1
@@ -165,59 +165,65 @@
 	</sql>
 	
 	<select id="selectList" parameterType="map" resultType="map">
+		/* om001.selectList */
+		
+		<!-- select * from om001
 		<if test="rows != null and page != null">
-		<!-- SELECT *
-		FROM
-		( -->
-			SELECT A1.*
-			,	#{page} AS PAGENUM
-			,	CEIL((<include refid="selectListTot" />) / (#{rows}+0.0)) TOTPAGECOUNT
-			,	(<include refid="selectListTot" />) AS TOTROWCOUNT
-			FROM
-			(
-		</if>
+	      LIMIT #{rows} OFFSET #{rows}*(#{page}-1)
+	    </if> -->
+	    <if test="rows != null and page != null">
+    <!-- SELECT *
+    FROM
+    ( -->
+      SELECT A1.*
+      , #{page} AS PAGENUM
+      , CEIL((<include refid="selectListTot" />) / (#{rows}+0.0)) TOTPAGECOUNT
+      , (<include refid="selectListTot" />) AS TOTROWCOUNT
+      FROM
+      (
+    </if>
         SELECT T1.usr_id
             , T1.cntr_cd
             ,(
-						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
-							<property name="p_tp_cd" value="'90002'"/>  								
-							<property name="p_cd" value="T1.cntr_cd"/>  								
-		 				</include>
-		 	  )  
+            <include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+              <property name="p_tp_cd" value="'90002'"/>                  
+              <property name="p_cd" value="T1.cntr_cd"/>                  
+            </include>
+        )  
             <!-- getCodeNM(T1.cntr_cd, '90002') --> AS cntr_nm
             , T1.team_cd
             , (
-						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
-							<property name="p_tp_cd" value="'90003'"/>  								
-							<property name="p_cd" value="T1.team_cd"/>  								
-		 				</include>
-		 	  )
+            <include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+              <property name="p_tp_cd" value="'90003'"/>                  
+              <property name="p_cd" value="T1.team_cd"/>                  
+            </include>
+        )
             <!-- getCodeNM(T1.team_cd, '90003') --> AS team_nm
             , T1.dept_cd
             , (
-						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
-							<property name="p_tp_cd" value="'90004'"/>  								
-							<property name="p_cd" value="T1.dept_cd"/>  								
-		 				</include>
-		 	  )
+            <include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+              <property name="p_tp_cd" value="'90004'"/>                  
+              <property name="p_cd" value="T1.dept_cd"/>                  
+            </include>
+        )
             <!-- getCodeNM(T1.dept_cd, '90004') --> AS dept_nm
             , T1.usr_nm
             , T1.pwd_enc_cont
             , T1.USR_GRD_CD
             , (
-						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
-							<property name="p_tp_cd" value="'90006'"/>  								
-							<property name="p_cd" value="T1.USR_GRD_CD"/>  								
-		 				</include>
-		 	  )
+            <include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+              <property name="p_tp_cd" value="'90006'"/>                  
+              <property name="p_cd" value="T1.USR_GRD_CD"/>                 
+            </include>
+        )
             <!-- getCodeNM(T1.USR_GRD_CD, '90006') --> AS cd_nm
             , T1.dty_cd
             , (
-						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
-							<property name="p_tp_cd" value="'90005'"/>  								
-							<property name="p_cd" value="T1.dty_cd"/>  								
-		 				</include>
-		 	  )
+            <include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+              <property name="p_tp_cd" value="'90005'"/>                  
+              <property name="p_cd" value="T1.dty_cd"/>                 
+            </include>
+        )
            <!--  getCodeNM(T1.dty_cd, '90005') --> AS dty_nm
             , T1.cti_use_yn
             , T1.cti_lgn_id
@@ -228,7 +234,7 @@
             , T1.ret_dt
             <!-- 2020.01.08 hhs is not null 수정 -->
 <!--             , (CASE WHEN T1.ret_dt is not null THEN '퇴사' ELSE '' END) AS ret_yn -->
-			<!-- 2020.01.13 hhs 퇴사자를 포함해오는 오류 수정 -->
+      <!-- 2020.01.13 hhs 퇴사자를 포함해오는 오류 수정 -->
 <!--             , (CASE WHEN (T1.ret_dt is not null OR T1.ret_dt != '') THEN '퇴사' ELSE '' END) AS ret_yn -->
             , (CASE WHEN (T1.ret_dt is not null AND T1.ret_dt != '') THEN '퇴사' ELSE '' END) AS ret_yn
             , T1.tel_no
@@ -316,15 +322,17 @@
         <if test="sidx == null and sord == null">
         ORDER BY usr_nm
         </if>
-		<if test="sidx != null and sord != null">
-				ORDER BY ${sidx} ${sord}
-				</if>
-		<if test="rows != null and page != null">
-			LIMIT #{rows} OFFSET #{rows}*(#{page}-1)
-			) A1
- 		</if>
-		<!-- )
- 		WHERE PAGENUM = #{page} -->
+	    <if test="sidx != null and sord != null">
+	        ORDER BY ${sidx} ${sord}
+	        </if>
+	    <if test="rows != null and page != null">
+	      LIMIT #{rows} OFFSET #{rows}*(#{page}-1)
+	      ) A1
+	    </if>
+	    <!-- )
+	    WHERE PAGENUM = #{page} -->
+ 		
+ 		/* end */
 	</select>
 	
 	<sql id="selectAgentListTot">
@@ -439,6 +447,8 @@
 	</select>
 	
 	<select id="select" parameterType="map" resultType="map">
+		/* om001.select
+		*/
 		WITH TEMP AS (
 			 SELECT USR_ID ,
 			 (
@@ -534,9 +544,12 @@
 					  LEFT JOIN TEMP t3
                    ON t1.USR_ID = t3.USR_ID 
 		WHERE t1.usr_id = #{usr_id}
+		/* end */
 	</select>
 
 	<insert id="insert" parameterType="map">
+		/* om001.insert
+		*/
 <!-- 	todo - 암호화 테이블 생성 후 수정 	INSERT INTO om001_ENC -->
 		INSERT INTO om001
 		(
@@ -602,9 +615,12 @@
 			,	to_char(sysdatetime, 'hh24miss')
 			,	#{login_usr_id}
 		)
+		/* end */
 	</insert>
 
 	<update id="update" parameterType="map">
+		/* om001.update
+		*/
 <!-- 	todo - 암호화 테이블 생성 후 수정 	UPDATE om001_ENC -->
 		UPDATE om001
 				SET 	usr_nm = #{usr_nm}
@@ -636,6 +652,7 @@
 			,	mod_usr_id = #{login_usr_id}
 			,   ret_rsn = #{ret_rsn}<!-- 퇴사사유  -->
 		WHERE usr_id = #{usr_id}
+		/* end */
 	</update>
 
 	<update id="updateExt" parameterType="map">
@@ -675,7 +692,7 @@
 
 
 	<select id="login" parameterType="map" resultType="map">
-           
+		/* om001.login */
 		SELECT '200' as login_code
 			,	'정상 로그인 됨' as login_desc
 			,	usr_id
@@ -748,6 +765,7 @@
 	    FROM om001 
 	    WHERE usr_id = #{usr_id}
 	      AND NOT EXISTS (SELECT 1 FROM om001 WHERE ret_dt is not null) -->
+		/* end */
 	</select>
 	
   <update id="usrUseYn" parameterType="map">

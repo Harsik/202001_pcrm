@@ -69,7 +69,7 @@
                                 <%-- <img alt="" src="<c:url value='/'/>bootstrap/img/avatar1_small.jpg"> --%>
                                 <img alt="" src="<c:url value='/'/>softdb/img/avatar-blank.svg" width="32px">
                             </span>
-                            <span class="username">${sessionScope.LoginVO.id} (${sessionScope.LoginVO.name})</span>
+                            <span class="username">${sessionScope.LoginVO.usrId} (${sessionScope.LoginVO.usrNm})</span>
                             <b class="caret"></b>
                         </a>
             <ul class="dropdown-menu extended logout">
@@ -127,6 +127,13 @@
             <a class="" href="../cmm/main/mainPage.do" >
                           <i class="icon_genius"></i>
                           <span>전자정부 홈</span>
+                      </a>
+          </li>
+          
+          <li>
+            <a class="" href="<c:url value='/'/>softdb/user/userListView.do">
+                          <i class="icon_genius"></i>
+                          <span>사용자관리</span>
                       </a>
           </li>
         </ul>
