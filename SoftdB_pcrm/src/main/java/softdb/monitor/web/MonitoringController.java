@@ -6,6 +6,7 @@ import java.util.Map;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -18,8 +19,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.View;
 
 import egovframework.com.cmm.EgovMessageSource;
-import egovframework.com.cmm.LoginVO;
-import egovframework.com.cmm.util.EgovUserDetailsHelper;
+import softdb.common.service.LoginVO;
+import softdb.common.web.BaseController;
+//import egovframework.com.cmm.util.EgovUserDetailsHelper;
 import softdb.monitor.service.MonitoringService;
 
 
@@ -41,7 +43,7 @@ import softdb.monitor.service.MonitoringService;
  * </pre>
  */
 @Controller
-public class MonitoringController {
+public class MonitoringController extends BaseController {
 
 	/** EgovMessageSource */
     @Resource(name="egovMessageSource")
@@ -61,11 +63,11 @@ public class MonitoringController {
 	private String endUrl;
 	
 	@RequestMapping(value="/monitor/MonitoringMapView.do")
- 	public String monitoringHome (HttpServletRequest req, ModelMap model ) throws Exception {
+ 	public String monitoringHome (HttpServletRequest req, ModelMap model) throws Exception {
 //		System.out.println(">>> gProperty referer : " +  gRef);
 //		System.out.println(">>> gProperty endUrl : " +  endUrl);
 		
-		if (!checkAuthority(model)) {
+		if (!checkAuthority(req, model)) {
 			String reqUsrId = req.getParameter("reqUsrId");
 			System.out.println(">>> reqUsrId : " + reqUsrId);
 			String referer = req.getHeader("referer");
@@ -75,7 +77,7 @@ public class MonitoringController {
 			if(referer != null && referer.contains(gRef) && referer.endsWith(endUrl) && reqUsrId != null && !reqUsrId.equals("")) {
 				// login 처리
 				LoginVO resultVO = new LoginVO();
-				resultVO.setId(reqUsrId);
+				resultVO.setUsrId(reqUsrId);
 				req.getSession().setAttribute("LoginVO", resultVO);
 				return "/softdb/monitor/MonitoringMapView";
 			}
@@ -123,17 +125,6 @@ public class MonitoringController {
 		return "softdb/monitor/MonitoringMapDetail";
 	}
 
-	protected boolean checkAuthority(ModelMap model) throws Exception {
-    	// 사용자권한 처리
-    	if(!EgovUserDetailsHelper.isAuthenticated()) {
-    		model.addAttribute("message", egovMessageSource.getMessage("fail.common.login"));
-        	return false;
-    	}
-    	else {
-    		return true;
-    	}
-    }
-	
 	@RequestMapping(value = "/monitor/ajaxRtCounselList.do")
 	public View ajaxRtCounselList(HttpServletRequest req, Model model, @RequestParam Map params) throws Exception {
 		try {

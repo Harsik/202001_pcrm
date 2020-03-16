@@ -1,4 +1,4 @@
-package softdb.monitor.service;
+package softdb.common.service;
 
 import java.util.List;
 import java.util.Map;
@@ -20,12 +20,17 @@ import java.util.Map;
  *
  *  </pre>
  */
-public interface MonitoringService {
+public interface UserMngService {
 
-	public List<?> selectMonitoringList(Map map) throws Exception;
+	public List<?> selectUserList(Map map) throws Exception;
 
-	public List selectMainChartList(Map map) throws Exception;
+	public List jqUuserList(Map params) throws Exception;
 
-	public List selectRtCounseltList(Map map) throws Exception;
+	public int om001Update(Map params) throws Exception;
+
+	public int om001Insert(Map reParam) throws Exception;
+
+	public int or002AuthUpdate(Map reParam) throws Exception;
+
 	
 }

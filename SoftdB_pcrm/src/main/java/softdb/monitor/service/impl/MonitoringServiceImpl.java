@@ -29,11 +29,8 @@ import softdb.monitor.service.MonitoringService;
 @Service("monitoringService")
 public class MonitoringServiceImpl extends EgovAbstractServiceImpl implements MonitoringService{
 
-	/*@Resource(name="monitoringDao")
-	private MonitoringDao dao;*/
-	
 	@Resource(name="mainMapper")
-	private MainMapper mapper;
+	private MainMapper main;
 	
 	@Resource(name="cd002")
 	private Cd002 cd002;
@@ -50,7 +47,7 @@ public class MonitoringServiceImpl extends EgovAbstractServiceImpl implements Mo
 	 */
 	@Override
 	public List<?> selectMonitoringList(Map map) throws Exception{
-		return mapper.selectSampleList(map);
+		return main.selectSampleList(map);
 	}
 
 	@Override

@@ -3,7 +3,10 @@ package softdb.monitor.web;
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -12,10 +15,10 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
 import egovframework.com.cmm.EgovMessageSource;
-import egovframework.com.cmm.LoginVO;
-import egovframework.let.uat.uia.service.EgovLoginService;
 import egovframework.rte.fdl.cmmn.trace.LeaveaTrace;
 import egovframework.rte.fdl.property.EgovPropertyService;
+import softdb.common.service.LoginVO;
+import softdb.monitor.service.LoginService;
 
 /**
  * 일반 로그인을 처리하는 컨트롤러 클래스
@@ -36,10 +39,12 @@ import egovframework.rte.fdl.property.EgovPropertyService;
  */
 @Controller
 public class LoginController {
+	
+	private static final Logger LOGGER = LoggerFactory.getLogger(LoginController.class);
 
 	/** EgovLoginService */
 	@Resource(name = "loginService")
-	private EgovLoginService loginService;
+	private LoginService loginService;
 
 	/** EgovMessageSource */
 	@Resource(name = "egovMessageSource")
@@ -61,7 +66,8 @@ public class LoginController {
 	 */
 	@RequestMapping(value = "/softdb/loginUsr.do")
 	public String loginUsrView(@ModelAttribute("loginVO") LoginVO loginVO, HttpServletRequest request, HttpServletResponse response, ModelMap model) throws Exception {
-		return "softdb/login/LoginUsr";
+		// return "softdb/login/LoginUsr";
+		return "softdb/login/login";
 	}
 
 	/**
@@ -79,16 +85,11 @@ public class LoginController {
 		
 		boolean loginPolicyYn = true;
 
-		if (resultVO != null && resultVO.getId() != null && !resultVO.getId().equals("") && loginPolicyYn) {
+		if (resultVO != null && resultVO.getUsrId() != null && !resultVO.getUsrId().equals("") && loginPolicyYn) {
 
 			request.getSession().setAttribute("LoginVO", resultVO);
 			
-			String fUrl = loginVO.getUrl();
-			if(fUrl != null && !fUrl.equals("")) {
-				return "redirect:" + fUrl;
-			}
 			
-			// return "forward:/cmm/main/mainPage.do";
 			return "forward:/monitor/MonitoringMapView.do";
 		} else {
 
@@ -96,6 +97,13 @@ public class LoginController {
 			return "softdb/login/loginUsr";
 		}
 
+	}
+	
+	@RequestMapping(value = "/login/login.do")
+	public String login(@ModelAttribute("loginVO") LoginVO loginVO, HttpServletRequest request, ModelMap model) throws Exception {
+		
+			return "softdb/login/login";
+	
 	}
 
 	/**
@@ -107,6 +115,8 @@ public class LoginController {
 	public String actionLogout(HttpServletRequest request, ModelMap model) throws Exception {
 
 		RequestContextHolder.getRequestAttributes().removeAttribute("LoginVO", RequestAttributes.SCOPE_SESSION);
+		HttpSession session = request.getSession (false);
+		session.invalidate();
 
 		// return "forward:/cmm/main/mainPage.do";
 		return "forward:/softdb/loginUsr.do";

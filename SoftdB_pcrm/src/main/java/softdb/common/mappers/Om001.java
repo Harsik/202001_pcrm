@@ -1,4 +1,4 @@
-package softdb.monitor.mappers;
+package softdb.common.mappers;
 
 import java.util.List;
 import java.util.Map;
@@ -30,6 +30,16 @@ public interface Om001 {
 	 * @exception Exception
 	 */
 	Map login(Map map) throws Exception;
+
+	List<?> selectUserList(Map map) throws Exception;
+	
+	List<?> selectList(Map map) throws Exception;
+	
+	Map select(Map map)  throws Exception;
+
+	int update(Map params) throws Exception;
+
+	int insert(Map params) throws Exception;
 
 
 }

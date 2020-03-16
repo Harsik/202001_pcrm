@@ -1,19 +1,21 @@
-package egovframework.let.uat.uia.service.impl;
+package softdb.monitor.service.impl;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import javax.annotation.Resource;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import egovframework.com.cmm.LoginVO;
-import egovframework.let.uat.uia.service.EgovLoginService;
 import egovframework.let.utl.fcc.service.EgovNumberUtil;
 import egovframework.let.utl.fcc.service.EgovStringUtil;
 import egovframework.let.utl.sim.service.EgovFileScrty;
 import egovframework.rte.fdl.cmmn.EgovAbstractServiceImpl;
 import softdb.common.mappers.Om001;
+import softdb.common.service.LoginVO;
+import softdb.monitor.service.LoginService;
 
 /**
  * 일반 로그인을 처리하는 비즈니스 구현 클래스
@@ -33,13 +35,13 @@ import softdb.common.mappers.Om001;
  *  </pre>
  */
 @Service("loginService")
-public class EgovLoginServiceImpl extends EgovAbstractServiceImpl implements EgovLoginService {
+public class LoginServiceImpl extends EgovAbstractServiceImpl implements LoginService {
 
-	@Resource(name = "loginDAO")
-	private LoginDAO loginDAO;
+	private static final Logger LOGGER = LoggerFactory.getLogger(LoginServiceImpl.class);
 	
-	@Resource(name = "om001")
-	private Om001 om001Mapper;
+	 @Resource(name = "om001")
+	 private Om001 om001Mapper;
+	
 
 	/**
 	 * 일반 로그인을 처리한다
@@ -51,22 +53,26 @@ public class EgovLoginServiceImpl extends EgovAbstractServiceImpl implements Ego
 	public LoginVO actionLogin(LoginVO vo) throws Exception {
 
 		// 1. 입력한 비밀번호를 암호화한다.
-		String enpassword = EgovFileScrty.encryptPassword(vo.getPassword(), vo.getId());
+		String enpassword = EgovFileScrty.encryptPassword(vo.getPassword(), vo.getUsrId());
 		vo.setPassword(enpassword);
 
 		// 2. 아이디와 암호화된 비밀번호가 DB와 일치하는지 확인한다.
-		LoginVO loginVO = loginDAO.actionLogin(vo);
+//		LoginVO loginVO = loginDAO.actionLogin(vo);
 		
 		// JHIL add start 
+		if(vo == null) return null;
+		
 		Map pMap = new HashMap();
-		pMap.put("usr_id", vo.getId());
+		pMap.put("usr_id", vo.getUsrId());
 		pMap.put("pwd_no_enc_cntn", enpassword);
+		
 		Map loginResult = om001Mapper.login(pMap);
-		System.out.println(">>> loginResult : " + loginResult.toString());
-		// JHIL add end 
+		LOGGER.debug(">>> loginResult : " + loginResult.toString());
+		LoginVO loginVO = new LoginVO(loginResult);
 
-		// 3. 결과를 리턴한다.
-		if (loginVO != null && !loginVO.getId().equals("") && !loginVO.getPassword().equals("")) {
+		LOGGER.debug(">>> loginVO : " + loginVO.toString());
+		
+		if (loginVO != null && !loginVO.getUsrId().equals("")) {
 			return loginVO;
 		} else {
 			loginVO = new LoginVO();
@@ -85,10 +91,11 @@ public class EgovLoginServiceImpl extends EgovAbstractServiceImpl implements Ego
 	public LoginVO searchId(LoginVO vo) throws Exception {
 
 		// 1. 이름, 이메일주소가 DB와 일치하는 사용자 ID를 조회한다.
-		LoginVO loginVO = loginDAO.searchId(vo);
+//		LoginVO loginVO = loginDAO.searchId(vo);
+		LoginVO loginVO = new LoginVO();
 
 		// 2. 결과를 리턴한다.
-		if (loginVO != null && !loginVO.getId().equals("")) {
+		if (loginVO != null && !loginVO.getUsrId().equals("")) {
 			return loginVO;
 		} else {
 			loginVO = new LoginVO();
@@ -109,7 +116,8 @@ public class EgovLoginServiceImpl extends EgovAbstractServiceImpl implements Ego
 		boolean result = true;
 
 		// 1. 아이디, 이름, 이메일주소, 비밀번호 힌트, 비밀번호 정답이 DB와 일치하는 사용자 Password를 조회한다.
-		LoginVO loginVO = loginDAO.searchPassword(vo);
+//		LoginVO loginVO = loginDAO.searchPassword(vo);
+		LoginVO loginVO = new LoginVO();
 		if (loginVO == null || loginVO.getPassword() == null || loginVO.getPassword().equals("")) {
 			return false;
 		}
@@ -128,11 +136,11 @@ public class EgovLoginServiceImpl extends EgovAbstractServiceImpl implements Ego
 
 		// 3. 임시 비밀번호를 암호화하여 DB에 저장한다.
 		LoginVO pwVO = new LoginVO();
-		String enpassword = EgovFileScrty.encryptPassword(newpassword, vo.getId());
-		pwVO.setId(vo.getId());
+		String enpassword = EgovFileScrty.encryptPassword(newpassword, vo.getUsrId());
+		pwVO.setUsrId(vo.getUsrId());
 		pwVO.setPassword(enpassword);
-		pwVO.setUserSe(vo.getUserSe());
-		loginDAO.updatePassword(pwVO);
+//		pwVO.setUserSe(vo.getUserSe());
+//		loginDAO.updatePassword(pwVO);
 
 		return result;
 	}
