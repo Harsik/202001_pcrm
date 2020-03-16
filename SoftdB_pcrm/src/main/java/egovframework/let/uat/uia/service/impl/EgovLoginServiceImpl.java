@@ -32,7 +32,7 @@ import softdb.common.mappers.Om001;
  *
  *  </pre>
  */
-@Service("loginService")
+@Service("eLoginService")
 public class EgovLoginServiceImpl extends EgovAbstractServiceImpl implements EgovLoginService {
 
 	@Resource(name = "loginDAO")

@@ -40,8 +40,8 @@ import org.springframework.web.context.request.RequestContextHolder;
 public class EgovLoginController {
 
 	/** EgovLoginService */
-	@Resource(name = "loginService")
-	private EgovLoginService loginService;
+	@Resource(name = "eLoginService")
+	private EgovLoginService eLoginService;
 
 	/** EgovMessageSource */
 	@Resource(name = "egovMessageSource")
@@ -77,7 +77,7 @@ public class EgovLoginController {
 	public String actionLogin(@ModelAttribute("loginVO") LoginVO loginVO, HttpServletRequest request, ModelMap model) throws Exception {
 
 		// 1. 일반 로그인 처리
-		LoginVO resultVO = loginService.actionLogin(loginVO);
+		LoginVO resultVO = eLoginService.actionLogin(loginVO);
 		
 		
 
