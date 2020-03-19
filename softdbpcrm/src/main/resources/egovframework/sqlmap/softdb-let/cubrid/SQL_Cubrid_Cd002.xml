@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="Cd002">
+
+	<typeAlias  alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+
+	<select id="cd002Dao.selectMainChartList" parameterClass="hashmap" resultClass="egovMap">
+		/* cd002Dao.selectMainChartList
+		*/
+		<![CDATA[
+			SELECT
+				*
+			FROM CD002
+		]]>
+	</select>
+
+	<select id="cd002Dao.selectSampleListTotCnt" parameterClass="hashmap" resultClass="int">
+		/* cd002Dao.selectSampleListTotCnt
+		*/
+			SELECT COUNT(*) totcnt
+			FROM OH051
+			WHERE 1=1
+			<if test="searchKeyword != null and searchKeyword != ''">
+		        <choose>
+		            <when test="searchCondition == 0">
+						AND ID LIKE '%' || #searchKeyword# || '%'
+					</when>
+		            <when test="searchCondition == 1">
+						AND	NAME LIKE '%' || #searchKeyword# || '%'
+					</when>
+				</choose>
+			</if>
+	</select>
+	
+</sqlMap>

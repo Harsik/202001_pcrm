@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE sqlMap PUBLIC "-//iBATIS.com//DTD SQL Map 2.0//EN" "http://www.ibatis.com/dtd/sql-map-2.dtd">
+
+<sqlMap namespace="LoginUsr">
+
+	<typeAlias  alias="egovMap" type="egovframework.rte.psl.dataaccess.util.EgovMap"/>
+	<typeAlias  alias="loginVO" type="softdb.common.service.LoginVO"/>
+
+	<!-- 로그인 처리를 위한 resultMap -->
+	<resultMap id="login" class="loginVO">
+		<result property="loginCode" column="login_code" />
+		<result property="usrId" column="usr_id" />
+		<result property="usrNm" column="usr_nm" />
+		<result property="extnNo" column="extn_no" />
+	</resultMap>
+	
+	
+	<!-- 일반 로그인 -->
+	<select id="loginDao.actionLogin" resultMap="login" parameterClass="loginVO" >
+		SELECT '200' as login_code
+			,	'정상 로그인 됨' as login_desc
+			,	usr_id as usr_id
+			,	usr_nm as usr_nm
+			,	extn_no as extn_no
+			,	cti_use_yn
+			,	cti_lgn_id
+			,	cntr_cd
+			,	team_cd
+			,	dept_cd
+			,	(
+		 				select cd_nm from sm002 where tp_cd = '90003' and cd = 'team_cd'
+		     	)
+			AS team_nm
+			,	usr_grd_cd
+		FROM om001
+		WHERE usr_id = #usrId#
+			AND pwd_enc_cont = #password# and (ret_dt is null OR ret_dt = '')
+		UNION  ALL
+		SELECT '404' as login_code
+			,	'아이디 또는 비밀번호가  맞지 않습니다' as login_desc
+			,	'' as usr_id
+			,	'' as usr_nm
+			,	'' as extn_no
+			,	'' as cti_use_yn
+			,	'' as cti_lgn_id
+			,	'' as cntr_cd
+			,	'' as team_cd
+			,	'' as dept_cd
+			,	'' as team_nm
+			,	'' as usr_grd_cd
+		FROM db_root
+		WHERE NOT EXISTS (SELECT 1 FROM om001 WHERE usr_id = #usrId#) and rownum = 1
+		UNION  ALL 
+		SELECT '405' as login_code
+			,	'아이디 또는 비밀번호가  맞지 않습니다' as login_desc
+			,	'' as usr_id
+			,	'' as usr_nm
+			,	'' as extn_no
+			,	'' as cti_use_yn
+			,	'' as cti_lgn_id
+			,	'' as cntr_cd
+			,	'' as team_cd
+			,	'' as dept_cd
+			,	'' as team_nm
+			,	'' as usr_grd_cd
+		FROM om001 
+		WHERE usr_id = #usrId#
+			AND NOT EXISTS (SELECT 1 FROM om001 WHERE usr_id = #usrId# AND pwd_enc_cont = #password#)
+	</select>
+
+
+
+
+</sqlMap>

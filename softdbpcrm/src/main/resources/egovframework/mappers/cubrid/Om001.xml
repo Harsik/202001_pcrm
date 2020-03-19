@@ -1,0 +1,2042 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+	PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+	"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+	<mapper namespace="softdb.common.mappers.Om001">
+	
+	<sql id="where">
+		 WHERE  1 = 1
+	</sql>
+
+	<select id="selectTabOrder" parameterType="map" resultType="map">
+	<![CDATA[
+		SELECT T2.cd, T2.cd_nm, T2.ext1_cd, T2.ext2_cd
+		FROM(       
+				SELECT code,
+				    LEVEL,
+				    REPLACE(REPLACE(SUBSTRING_INDEX(code,',',LEVEL), SUBSTRING_INDEX(code,',',LEVEL -1),''),',','') code_split
+				FROM (SELECT (SELECT NVL(tab_order, 'JS0004,CM0002,CM0016,CM0017,CM0101,CM0202') FROM om001 WHERE usr_id=#{usr_id}) AS code) Z
+				CONNECT BY LEVEL <= LENGTH(code) - LENGTH(REPLACE(code,',','')) + 1
+			) T1,
+			(SELECT	tp_cd 
+					,cd 
+					,cd_nm
+					,ext1_cd
+					,ext2_cd
+			FROM sm002
+			WHERE tp_cd = '90101'
+			AND use_yn = 'Y') T2
+		WHERE T1.code_split = T2.cd
+	]]>
+	</select>
+	
+	<update id="updateTabOrder" parameterType="map">
+	<![CDATA[	
+	UPDATE om001 T3
+	SET
+		T3.tab_order = (
+			SELECT
+			GROUP_CONCAT(T2.cd)
+			from
+			(
+				SELECT
+					code,
+					LEVEL,
+					REPLACE(REPLACE(SUBSTRING_INDEX(code, ',', LEVEL), SUBSTRING_INDEX(code, ',', LEVEL - 1), ''), ',', '') code_split
+				FROM
+					(
+						SELECT
+							#{tab_order} AS code
+					) Z
+				CONNECT BY
+					LEVEL <= LENGTH(code) - LENGTH(REPLACE(code, ',', '')) + 1
+			) T1,
+			(
+				SELECT
+					tp_cd,
+					cd,
+					cd_nm,
+					ext1_cd,
+					ext2_cd
+				FROM
+					sm002
+				WHERE
+					tp_cd = '90101'
+			) T2
+			WHERE
+				T1.code_split = T2.ext2_cd
+			) 
+		WHERE
+			T3.USR_ID = #{usr_id} 
+	]]>
+			
+	<!-- 
+	<![CDATA[
+	UPDATE om001 T3
+	SET T3.tab_order = 
+	(SELECT   LISTAGG(t2.cd,',') WITHIN GROUP(
+                ORDER BY rownum                   
+            )
+		FROM(
+			SELECT TRIM(REGEXP_SUBSTR(ORG_DATA, '[^,]+', 1, LEVEL)) AS SPLIT_DATA
+			FROM        
+				(SELECT #{tab_order}
+				AS ORG_DATA FROM db_root)
+			CONNECT BY INSTR(ORG_DATA, ',', 1, LEVEL - 1) > 0) T1,
+			(SELECT	tp_cd 
+					,cd 
+					,cd_nm
+					,ext1_cd
+					,ext2_cd
+			FROM sm002
+			WHERE tp_cd = '90101') T2
+		WHERE T1.SPLIT_DATA = T2.ext2_cd)
+       where T3.USR_ID = #{usr_id} 
+	]]>  -->
+	</update>
+	
+	<sql id="selectListTot">
+	SELECT COUNT(*) FROM om001 T1
+             LEFT JOIN (SELECT * FROM SM002 WHERE TP_CD = '90003' AND USE_YN = 'Y') T2 ON T1.TEAM_CD = T2.CD
+        WHERE 1 = 1
+        <if test = "!chkRetire">
+          AND (T1.ret_dt is null OR T1.ret_dt = '')
+        </if>        
+        <if test="gradeType != null and !gradeType.equals('all') and !gradeType.equals('')">
+         <choose>
+         <when test="prjctType != null and prjctType.equals('EDU')">
+          /* 제주도청 팀의 팀장은 교육대상자에 포함 */   
+          AND (T1.usr_grd_cd = #{gradeType} OR (T1.usr_grd_cd = '030100' AND team_cd <![CDATA[<>]]> '9000'))
+         </when>
+         <otherwise>
+          AND T1.usr_grd_cd = #{gradeType}
+         </otherwise>   
+         </choose>   
+        </if>
+        <if test="tfSrchVal != null and !tfSrchVal.equals('')">
+          <if test="optSrchType.equals('all')">
+            AND (upper(T1.usr_id) like '%' || upper(#{tfSrchVal}) || '%'
+            OR upper(T1.usr_nm) like '%' || upper(#{tfSrchVal}) || '%')
+          </if>        
+          <if test="optSrchType.equals('usrId')">
+            AND upper(T1.usr_id) like '%' || upper(#{tfSrchVal}) || '%'
+          </if>
+          <if test="optSrchType.equals('usrNm')">
+            AND upper(T1.usr_nm) like '%' || upper(#{tfSrchVal}) || '%'
+          </if> 
+        </if>
+        <if test="tfCallSrchVal != null and !tfCallSrchVal.equals('')">
+            AND (upper(T1.usr_id) like '%' || upper(#{tfCallSrchVal}) || '%'
+            OR upper(T1.usr_nm) like '%' || upper(#{tfCallSrchVal}) || '%')
+        </if>
+        <if test="!notuse">
+          AND T1.use_yn = 'Y'
+        </if>
+        <if test="cntr_cd != null and !cntr_cd.equals('all') and !cntr_cd.equals('')">
+          AND T1.cntr_cd = #{cntr_cd}
+        </if>
+        <if test="team_cd != null and !team_cd.equals('all') and !team_cd.equals('')">
+          AND T1.team_cd = #{team_cd}
+        </if>
+        <if test="dept_cd != null and !dept_cd.equals('all') and !dept_cd.equals('')">
+          AND T1.dept_cd = #{dept_cd}
+        </if>
+        <if test="cmpg_usr_id != null and !cmpg_usr_id.equals('') and !cmpg_usr_id.equals('all')">
+          AND T1.usr_id = #{cmpg_usr_id}
+        </if>
+        <if test="notLowLev != null and notLowLev">
+          <if test="or_cntr_cd != null and !or_cntr_cd.equals('all') and !or_cntr_cd.equals('')">
+            AND T1.cntr_cd = #{or_cntr_cd}
+          </if>
+          <if test="or_team_cd != null and !or_team_cd.equals('all') and !or_team_cd.equals('')">
+            AND T1.team_cd = #{or_team_cd}
+          </if>
+          <if test="or_dept_cd != null and !or_dept_cd.equals('all') and !or_dept_cd.equals('')">
+            AND T1.dept_cd = #{or_dept_cd}
+          </if>
+        </if>
+        <if test="notLowLev != null and !notLowLev">
+          AND T1.cntr_cd = #{or_cntr_cd}
+          AND T1.team_cd = #{or_team_cd}
+          AND T1.dept_cd = #{or_dept_cd}
+        </if> 
+	</sql>
+	
+	<select id="selectList" parameterType="map" resultType="map">
+		/* om001.selectList */
+		
+		<!-- select * from om001
+		<if test="rows != null and page != null">
+	      LIMIT #{rows} OFFSET #{rows}*(#{page}-1)
+	    </if> -->
+	    <if test="rows != null and page != null">
+    <!-- SELECT *
+    FROM
+    ( -->
+      SELECT A1.*
+      , #{page} AS PAGENUM
+      , CEIL((<include refid="selectListTot" />) / (#{rows}+0.0)) TOTPAGECOUNT
+      , (<include refid="selectListTot" />) AS TOTROWCOUNT
+      FROM
+      (
+    </if>
+        SELECT T1.usr_id
+            , T1.cntr_cd
+            ,(
+            <include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+              <property name="p_tp_cd" value="'90002'"/>                  
+              <property name="p_cd" value="T1.cntr_cd"/>                  
+            </include>
+        )  
+            <!-- getCodeNM(T1.cntr_cd, '90002') --> AS cntr_nm
+            , T1.team_cd
+            , (
+            <include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+              <property name="p_tp_cd" value="'90003'"/>                  
+              <property name="p_cd" value="T1.team_cd"/>                  
+            </include>
+        )
+            <!-- getCodeNM(T1.team_cd, '90003') --> AS team_nm
+            , T1.dept_cd
+            , (
+            <include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+              <property name="p_tp_cd" value="'90004'"/>                  
+              <property name="p_cd" value="T1.dept_cd"/>                  
+            </include>
+        )
+            <!-- getCodeNM(T1.dept_cd, '90004') --> AS dept_nm
+            , T1.usr_nm
+            , T1.pwd_enc_cont
+            , T1.USR_GRD_CD
+            , (
+            <include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+              <property name="p_tp_cd" value="'90006'"/>                  
+              <property name="p_cd" value="T1.USR_GRD_CD"/>                 
+            </include>
+        )
+            <!-- getCodeNM(T1.USR_GRD_CD, '90006') --> AS cd_nm
+            , T1.dty_cd
+            , (
+            <include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+              <property name="p_tp_cd" value="'90005'"/>                  
+              <property name="p_cd" value="T1.dty_cd"/>                 
+            </include>
+        )
+           <!--  getCodeNM(T1.dty_cd, '90005') --> AS dty_nm
+            , T1.cti_use_yn
+            , T1.cti_lgn_id
+            , T1.extn_no
+            , T1.at_rcv_yn
+            , T1.AT_RDY_YN AS AT_READY_YN
+            , T1.ent_dt
+            , T1.ret_dt
+            <!-- 2020.01.08 hhs is not null 수정 -->
+<!--             , (CASE WHEN T1.ret_dt is not null THEN '퇴사' ELSE '' END) AS ret_yn -->
+      <!-- 2020.01.13 hhs 퇴사자를 포함해오는 오류 수정 -->
+<!--             , (CASE WHEN (T1.ret_dt is not null OR T1.ret_dt != '') THEN '퇴사' ELSE '' END) AS ret_yn -->
+            , (CASE WHEN (T1.ret_dt is not null AND T1.ret_dt != '') THEN '퇴사' ELSE '' END) AS ret_yn
+            , T1.tel_no
+            , T1.cel_no
+            , getFormatPhoneNum(T1.cel_no) as cel_no_format
+            , T1.fax_no
+            , T1.eml_adr
+            , T1.pc_ip
+            , T1.pc_mac
+            , T1.usr_img_pth
+            , T1.crt_dt
+            , T1.crt_tm
+            , T1.crt_usr_id
+            , T1.mod_dt
+            , getFormatDate(T1.mod_dt) AS mod_dt_format
+            , T1.mod_tm
+            , T1.mod_usr_id
+            , T1.use_yn
+            , getFormatDate(T1.pw_mod_dt) AS pw_mod_dt_format
+            , T2.CD_ORD
+        FROM om001 T1
+             LEFT JOIN (SELECT * FROM SM002 WHERE TP_CD = '90003' AND USE_YN = 'Y') T2 ON T1.TEAM_CD = T2.CD
+        WHERE 1 = 1
+        <if test = "!chkRetire">
+          AND (T1.ret_dt is null OR T1.ret_dt = '')
+        </if>        
+        <if test="gradeType != null and !gradeType.equals('all') and !gradeType.equals('')">
+         <choose>
+         <when test="prjctType != null and prjctType.equals('EDU')">
+          /* 제주도청 팀의 팀장은 교육대상자에 포함 */   
+          AND (T1.usr_grd_cd = #{gradeType} OR (T1.usr_grd_cd = '030100' AND team_cd <![CDATA[<>]]> '9000'))
+         </when>
+         <otherwise>
+          AND T1.usr_grd_cd = #{gradeType}
+         </otherwise>   
+         </choose>   
+        </if>
+        <if test="tfSrchVal != null and !tfSrchVal.equals('')">
+          <if test="optSrchType.equals('all')">
+            AND (upper(T1.usr_id) like '%' || upper(#{tfSrchVal}) || '%'
+            OR upper(T1.usr_nm) like '%' || upper(#{tfSrchVal}) || '%')
+          </if>        
+          <if test="optSrchType.equals('usrId')">
+            AND upper(T1.usr_id) like '%' || upper(#{tfSrchVal}) || '%'
+          </if>
+          <if test="optSrchType.equals('usrNm')">
+            AND upper(T1.usr_nm) like '%' || upper(#{tfSrchVal}) || '%'
+          </if> 
+        </if>
+        <if test="tfCallSrchVal != null and !tfCallSrchVal.equals('')">
+            AND (upper(T1.usr_id) like '%' || upper(#{tfCallSrchVal}) || '%'
+            OR upper(T1.usr_nm) like '%' || upper(#{tfCallSrchVal}) || '%')
+        </if>
+        <if test="!notuse">
+          AND T1.use_yn = 'Y'
+        </if>
+        <if test="cntr_cd != null and !cntr_cd.equals('all') and !cntr_cd.equals('')">
+          AND T1.cntr_cd = #{cntr_cd}
+        </if>
+        <if test="team_cd != null and !team_cd.equals('all') and !team_cd.equals('')">
+          AND T1.team_cd = #{team_cd}
+        </if>
+        <if test="dept_cd != null and !dept_cd.equals('all') and !dept_cd.equals('')">
+          AND T1.dept_cd = #{dept_cd}
+        </if>
+        <if test="cmpg_usr_id != null and !cmpg_usr_id.equals('') and !cmpg_usr_id.equals('all')">
+          AND T1.usr_id = #{cmpg_usr_id}
+        </if>
+        <if test="notLowLev != null and notLowLev">
+          <if test="or_cntr_cd != null and !or_cntr_cd.equals('all') and !or_cntr_cd.equals('')">
+            AND T1.cntr_cd = #{or_cntr_cd}
+          </if>
+          <if test="or_team_cd != null and !or_team_cd.equals('all') and !or_team_cd.equals('')">
+            AND T1.team_cd = #{or_team_cd}
+          </if>
+          <if test="or_dept_cd != null and !or_dept_cd.equals('all') and !or_dept_cd.equals('')">
+            AND T1.dept_cd = #{or_dept_cd}
+          </if>
+        </if>
+        <if test="notLowLev != null and !notLowLev">
+          AND T1.cntr_cd = #{or_cntr_cd}
+          AND T1.team_cd = #{or_team_cd}
+          AND T1.dept_cd = #{or_dept_cd}
+        </if>
+        <if test="sidx == null and sord == null">
+        ORDER BY usr_nm
+        </if>
+	    <if test="sidx != null and sord != null">
+	        ORDER BY ${sidx} ${sord}
+	        </if>
+	    <if test="rows != null and page != null">
+	      LIMIT #{rows} OFFSET #{rows}*(#{page}-1)
+	      ) A1
+	    </if>
+	    <!-- )
+	    WHERE PAGENUM = #{page} -->
+ 		
+ 		/* end */
+	</select>
+	
+	<sql id="selectAgentListTot">
+	SELECT COUNT(*) FROM OM001 a 
+               LEFT JOIN TEMP t1 
+                      ON a.USR_ID = t1.USR_ID 
+				  WHERE 1 = 1
+				  and a.team_cd !='all'
+				  <!-- 2020.01.09 hhs is null 수정 -->
+				   <![CDATA[
+				   AND (RET_DT IS NULL OR RET_DT = '' OR RET_DT > TO_CHAR(sysdatetime, 'YYYYMMDD'))
+				   ]]>
+			<if test="srchcc_val != null and !srchcc_val.equals('')">	   
+				<if test="srchcc_type.equals('EXTNAME')">
+					    AND USR_NM LIKE '%' || #{srchcc_val} || '%'
+				</if>
+				<if test="srchcc_type.equals('EXTNO')">
+					    AND EXTN_NO = #{srchcc_val}
+				</if>
+			</if>
+			<if test="cntr_cd != null and !cntr_cd.equals('')">
+				    AND CNTR_CD = #{cntr_cd}
+			</if>
+			<if test="!notuse">
+					AND use_yn = 'Y'
+			</if>
+	</sql>
+	
+	
+	<!-- 조직도 사용 -->
+	<select id="selectAgentList" parameterType="map" resultType="map">
+	 WITH TEMP AS (
+		 SELECT USR_ID ,
+		  (
+                	<include refid="softdb.monitor.mappers.OracleFunction.getUserNM">
+										<property name="p_org" value="'CC'"/>  								
+										<property name="p_usr_id" value="#{usr_id}"/>  								
+					</include>
+		  )
+		  <!-- GETUSERNM('CC',USR_ID) --> as USRNM ,USR_ST_CD,
+		  (
+						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+							<property name="p_tp_cd" value="'90008'"/>  								
+							<property name="p_cd" value="USR_ST_CD"/>  								
+		 				</include>
+		  )
+		  <!-- GETCODENM(USR_ST_CD,'90008') --> as  ST_NM
+                FROM (
+                      SELECT USR_ID, MOD_TM, USR_ST_CD 
+                           , ROW_NUMBER() OVER(PARTITION BY USR_ID ORDER BY ST_STRT_TM DESC) as rowseq
+                        FROM oh022
+                       WHERE ST_ALT_DT = TO_CHAR(sysdatetime, 'yyyymmdd')
+                      ) a
+               WHERE 1=1
+                 AND rowseq = 1  
+		)   
+	    
+		<if test="rows != null and page != null">
+		<!-- SELECT *
+		FROM
+		( -->
+			SELECT A1.*
+			,	#{page} AS PAGENUM
+			,	CEIL((<include refid="selectAgentListTot" />) / (#{rows}+0.0)) TOTPAGECOUNT
+			,	(<include refid="selectAgentListTot" />) AS TOTROWCOUNT
+			FROM
+			(
+		</if>
+				SELECT  a.USR_ID AS USR_ID
+				      , TEAM_CD 
+				     , (SELECT CD_NM FROM sm002 WHERE TP_CD = '90003' AND CD = a.TEAM_CD) AS TEAM_NM
+				     , (SELECT CD_NM FROM sm002 WHERE TP_CD = '90006' AND CD = a.USR_GRD_CD) AS USR_GRD_NM
+				     , (SELECT CD_NM FROM sm002 WHERE TP_CD = '90005' AND CD = a.DTY_CD) AS DTY_NM
+				     , (SELECT CD_NM FROM sm002 WHERE TP_CD = '90007' AND CD = a.cti_use_yn) AS CTI_USE_YN
+				     , USR_NM AS USR_NM
+				     , CTI_LGN_ID AS CTI_LGN_ID
+				     , EXTN_NO AS EXTN_NO
+				    , t1.ST_NM as STATUS
+            , t1.USR_ST_CD as USR_ST_CD 
+				  FROM OM001 a 
+               LEFT JOIN TEMP t1 
+                      ON a.USR_ID = t1.USR_ID 
+				  WHERE 1 = 1
+				  and a.team_cd !='all'
+				  <!-- 2020.01.09 hhs is null 수정 -->
+				   <![CDATA[
+				   AND (RET_DT IS NULL OR RET_DT = '' OR RET_DT > TO_CHAR(sysdatetime, 'YYYYMMDD'))
+				   ]]>
+			<if test="srchcc_val != null and !srchcc_val.equals('')">	   
+				<if test="srchcc_type.equals('EXTNAME')">
+					    AND USR_NM LIKE '%' || #{srchcc_val} || '%'
+				</if>
+				<if test="srchcc_type.equals('EXTNO')">
+					    AND EXTN_NO = #{srchcc_val}
+				</if>
+			</if>
+			<if test="cntr_cd != null and !cntr_cd.equals('')">
+				    AND CNTR_CD = #{cntr_cd}
+			</if>
+			<if test="!notuse">
+					AND use_yn = 'Y'
+			</if>
+			 <if test="sidx != null and sord != null">
+	                ORDER BY ${sidx} ${sord}
+	         </if>
+			<if test="rows != null and page != null">
+			LIMIT #{rows} OFFSET #{rows}*(#{page}-1)
+			) A1
+		<!-- )
+ 		WHERE PAGENUM = #{page} -->
+ 		</if>
+	</select>
+	
+	<select id="select" parameterType="map" resultType="map">
+		/* om001.select
+		*/
+		WITH TEMP AS (
+			 SELECT USR_ID ,
+			 (
+                	<include refid="softdb.monitor.mappers.OracleFunction.getUserNM">
+										<property name="p_org" value="'CC'"/>  								
+										<property name="p_usr_id" value="#{usr_id}"/>  								
+					</include>
+		     )
+			 
+			  <!-- GETUSERNM('CC',USR_ID) --> as USRNM ,USR_ST_CD,
+			 (
+						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+							<property name="p_tp_cd" value="'90008'"/>  								
+							<property name="p_cd" value="USR_ST_CD"/>  								
+		 				</include>
+		     )
+			  <!-- GETCODENM(USR_ST_CD,'90008') --> as  ST_NM
+                FROM (
+                      SELECT USR_ID, MOD_TM, USR_ST_CD 
+                           , ROW_NUMBER() OVER(PARTITION BY USR_ID ORDER BY ST_STRT_TM DESC) as rowseq
+                        FROM oh022
+                       WHERE ST_ALT_DT = TO_CHAR(sysdatetime, 'yyyymmdd')
+                      ) a
+               WHERE 1=1
+                 AND rowseq = 1  
+		)   
+		SELECT	0
+				,	t1.usr_id
+				,	NVL(t1.cntr_cd, 'all') AS cntr_cd
+				,	NVL(t1.team_cd, 'all') AS team_cd
+				,	NVL(t1.dept_cd, 'all') AS dept_cd
+				,   (
+						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+							<property name="p_tp_cd" value="'90003'"/>  								
+							<property name="p_cd" value="t1.team_cd"/>  								
+		 				</include>
+		     		)
+				<!-- getCodeNM(t1.team_cd,'90003') -->AS team_nm
+				,	t1.usr_nm
+				,	t1.pwd_enc_cont
+				,	NVL(t1.usr_grd_cd, 'all') AS usr_grd_cd
+				,   (
+						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+							<property name="p_tp_cd" value="'90006'"/>  								
+							<property name="p_cd" value="t1.usr_grd_cd"/>  								
+		 				</include>
+		     		)
+				<!-- getCodeNM(t1.usr_grd_cd, '90006') --> AS usr_grd_nm
+				,	NVL(t1.dty_cd, 'all') AS dty_cd
+				,   (
+						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+							<property name="p_tp_cd" value="'90005'"/>  								
+							<property name="p_cd" value="t1.dty_cd"/>  								
+		 				</include>
+		     		)
+				<!-- getCodeNM(t1.dty_cd, '90005') -->AS DTY_NM
+				,	t1.cti_use_yn as CTI_USE_YN
+				,	t1.cti_lgn_id
+				,	t1.extn_no
+				,	t1.at_rcv_yn
+				,	t1.AT_RDY_YN AS AT_READY_YN
+				,	t1.ent_dt
+				,	getFormatDate(t1.ent_dt) AS ent_dt_format
+				,	t1.ret_dt
+				,	getFormatDate(t1.ret_dt) AS ret_dt_format
+				,	t1.tel_no
+				,	t1.cel_no
+				,	t1.fax_no
+				,	t1.eml_adr
+				,	t1.pc_ip
+				,	t1.pc_mac
+				,	t1.usr_img_pth
+				,	t1.crt_dt
+				,	t1.crt_tm
+				,	t1.crt_usr_id
+				,   t1.emp_no
+				,	(select USR_NM from OM001 where USR_ID = t1.crt_usr_id) AS crt_usr_nm
+				,	t1.mod_dt
+				,	t1.mod_tm
+				,	getFormatDate(t1.mod_dt) AS mod_dt_format
+				,	getFormatTime(t1.mod_tm) AS mod_tm_format
+				,	t1.mod_usr_id
+				,	(select USR_NM from OM001 where USR_ID = t1.mod_usr_id) AS mod_usr_nm
+				,	t2.SVR_SV_PTH AS SVRFL_PTH
+				<!-- 2020.01.08 hhs is null 수정 -->
+<!-- 				,   case when t1.RET_RSN is null then 'all' else t1.RET_RSN end as ret_rsn -->
+				,   case when t1.RET_RSN is null OR t1.RET_RSN = '' then 'all' else t1.RET_RSN end as ret_rsn
+			    , t3.ST_NM as USR_ST_NM
+        	    , t3.USR_ST_CD as USR_ST_CD 
+		FROM om001 t1 
+						left join om019 t2 
+						       on t1.usr_id = t2.tbl_pk
+					  LEFT JOIN TEMP t3
+                   ON t1.USR_ID = t3.USR_ID 
+		WHERE t1.usr_id = #{usr_id}
+		/* end */
+	</select>
+
+	<insert id="insert" parameterType="map">
+		/* om001.insert
+		*/
+<!-- 	todo - 암호화 테이블 생성 후 수정 	INSERT INTO om001_ENC -->
+		INSERT INTO om001
+		(
+				usr_id
+			,	cntr_cd
+			,	team_cd
+			,	dept_cd
+			,	pwd_enc_cont
+			,	usr_grd_cd
+			,	dty_cd
+			,	cti_use_yn
+			,	cti_lgn_id
+			,	extn_no
+			,	at_rcv_yn
+			,	AT_RDY_YN
+			,	ent_dt
+			,	ret_dt
+			,	usr_nm
+			,	tel_no
+			,	cel_no
+			,	eml_adr
+			,	pc_ip
+			,	use_yn
+			,	crt_dt
+			,	crt_tm
+			,	crt_usr_id
+			,	mod_dt
+			,	mod_tm
+			,	mod_usr_id
+		)
+		VALUES
+		(
+				#{usr_id}
+			,	#{cntr_cd}
+			,	#{team_cd}
+			,	#{dept_cd}
+			,	#{pwd_no_enc_cntn}
+			,	#{usr_grd_cd}
+			,	#{dty_cd}			
+			,	#{cti_use_yn}
+			,	#{cti_lgn_id}
+			,	#{extn_no}
+			,	'N'
+			,	'N'
+			,	#{ent_dt}
+			,	#{ret_dt}
+			
+			,	#{usr_nm}
+			,	#{tel_no}
+			,	#{cel_no}
+			,	#{eml_adr}
+<!-- todo MAGICDB 설치 후 수정			
+			,	MAGICDB.enc('POLICY001',#{usr_nm})
+			,	MAGICDB.enc('POLICY001',#{tel_no}) 
+			,	MAGICDB.enc('POLICY001',#{cel_no})
+			,	MAGICDB.enc('POLICY001',#{eml_adr})	-->
+			,	#{pc_ip}
+			,	'Y'
+			,	to_char(sysdatetime, 'yyyymmdd')
+			,	to_char(sysdatetime, 'hh24miss')
+			,	#{login_usr_id}
+			,	to_char(sysdatetime, 'yyyymmdd')
+			,	to_char(sysdatetime, 'hh24miss')
+			,	#{login_usr_id}
+		)
+		/* end */
+	</insert>
+
+	<update id="update" parameterType="map">
+		/* om001.update
+		*/
+<!-- 	todo - 암호화 테이블 생성 후 수정 	UPDATE om001_ENC -->
+		UPDATE om001
+				SET 	usr_nm = #{usr_nm}
+			,	tel_no = #{tel_no}
+			,	cel_no = #{cel_no}
+			,	eml_adr = #{eml_adr}
+			
+<!-- todo MAGICDB 설치 후 수정
+				SET 	usr_nm = MAGICDB.enc('POLICY001',#{usr_nm})
+			,	tel_no = MAGICDB.enc('POLICY001',#{tel_no})
+			,	cel_no = MAGICDB.enc('POLICY001',#{cel_no})
+			,	eml_adr = MAGICDB.enc('POLICY001',#{eml_adr}) -->
+			,	cntr_cd = #{cntr_cd}
+			,	team_cd = #{team_cd}
+			,	dept_cd = #{dept_cd}
+			<if test="!pwdMod.equalsIgnoreCase('N')">
+			,	pwd_enc_cont = #{pwd_no_enc_cntn}
+			</if>
+			,	usr_grd_cd = #{usr_grd_cd}
+			,	dty_cd = #{dty_cd}			
+			,	cti_use_yn = #{cti_use_yn}
+			,	cti_lgn_id = #{cti_lgn_id}
+			,	extn_no = #{extn_no}			
+			,	ent_dt = #{ent_dt}
+			,	ret_dt = #{ret_dt}
+			,	pc_ip = #{pc_ip}
+			,	mod_dt = to_char(sysdatetime, 'yyyymmdd')
+			,	mod_tm = to_char(sysdatetime, 'hh24miss')
+			,	mod_usr_id = #{login_usr_id}
+			,   ret_rsn = #{ret_rsn}<!-- 퇴사사유  -->
+		WHERE usr_id = #{usr_id}
+		/* end */
+	</update>
+
+	<update id="updateExt" parameterType="map">
+		UPDATE om001
+		SET	extn_no = #{extn_no}			
+			,	mod_dt = to_char(sysdatetime, 'yyyymmdd')
+			,	mod_tm = to_char(sysdatetime, 'hh24miss')
+			,	mod_usr_id = #{login_usr_id}
+		WHERE usr_id = #{login_usr_id}
+	</update>
+	
+	<update id="updatePwd" parameterType="map">
+		UPDATE om001
+		SET	pwd_enc_cont = #{pwd_no_enc_cntn}			
+			,	mod_dt = to_char(sysdatetime, 'yyyymmdd')
+			,	mod_tm = to_char(sysdatetime, 'hh24miss')
+			,	pw_mod_dt = to_char(sysdatetime, 'yyyymmdd')
+			,	mod_usr_id = #{login_usr_id}
+		WHERE usr_id = #{login_usr_id}
+	</update>
+	
+	<update id="updatePwdAdminMod" parameterType="map">
+		UPDATE om001
+		SET	pwd_enc_cont = #{pwd_no_enc_cntn}			
+			,	mod_dt = to_char(sysdatetime, 'yyyymmdd')
+			,	mod_tm = to_char(sysdatetime, 'hh24miss')
+			,	pw_mod_dt = to_char(sysdatetime, 'yyyymmdd')
+			,	mod_usr_id = #{usr_Id}
+		WHERE usr_id = #{usr_Id}
+	</update>
+	
+
+	<delete id="delete" parameterType="map">
+		DELETE FROM om001
+		WHERE usr_id = #{usr_id}
+	</delete>
+
+
+	<select id="login" parameterType="map" resultType="map">
+		/* om001.login */
+		SELECT '200' as login_code
+			,	'정상 로그인 됨' as login_desc
+			,	usr_id
+			,	usr_nm
+			,	extn_no
+			,	cti_use_yn
+			,	cti_lgn_id
+			,	cntr_cd
+			,	team_cd
+			,	dept_cd
+			,	(
+						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+							<property name="p_tp_cd" value="'90003'"/>  								
+							<property name="p_cd" value="team_cd"/>  								
+		 				</include>
+		     	)
+			<!-- getCodeNM(team_cd, '90003') --> AS team_nm
+			,	usr_grd_cd
+		FROM om001
+		WHERE usr_id = #{usr_id}
+			<!-- 2020.01.08 hhs is null 수정 -->
+<!-- 			AND pwd_enc_cont = #{pwd_no_enc_cntn} and ret_dt is null -->
+			AND pwd_enc_cont = #{pwd_no_enc_cntn} and (ret_dt is null OR ret_dt = '')
+			<!--AND pwd_enc_cont = call.pkg_member.get_encryptionpasswd_fn(#{pwd_no_enc_cntn})-->
+		UNION  ALL
+		SELECT '404' as login_code
+			,	'아이디 또는 비밀번호가  맞지 않습니다' as login_desc
+			,	'' as usr_id
+			,	'' as usr_nm
+			,	'' as extn_no
+			,	'' as cti_use_yn
+			,	'' as cti_lgn_id
+			,	'' as cntr_cd
+			,	'' as team_cd
+			,	'' as dept_cd
+			,	'' as team_nm
+			,	'' as usr_grd_cd
+		FROM db_root
+		WHERE NOT EXISTS (SELECT 1 FROM om001 WHERE usr_id = #{usr_id}) and rownum = 1
+		UNION  ALL 
+		SELECT '405' as login_code
+			,	'아이디 또는 비밀번호가  맞지 않습니다' as login_desc
+			,	'' as usr_id
+			,	'' as usr_nm
+			,	'' as extn_no
+			,	'' as cti_use_yn
+			,	'' as cti_lgn_id
+			,	'' as cntr_cd
+			,	'' as team_cd
+			,	'' as dept_cd
+			,	'' as team_nm
+			,	'' as usr_grd_cd
+		FROM om001 
+		WHERE usr_id = #{usr_id}
+			AND NOT EXISTS (SELECT 1 FROM om001 WHERE usr_id = #{usr_id} AND pwd_enc_cont = #{pwd_no_enc_cntn})
+			<!--AND NOT EXISTS (SELECT 1 FROM om001 WHERE usr_id = #{usr_id} AND pwd_enc_cont = call.pkg_member.get_encryptionpasswd_fn(#{pwd_no_enc_cntn}))-->
+<!-- 		UNION  ALL 
+	    SELECT '406' as login_code
+	        ,	'퇴사한 상담사 입니다.' as login_desc
+	        ,	'' as usr_id
+	        ,	'' as usr_nm
+	        ,	'' as extn_no
+	        ,	'' as cti_use_yn
+	        ,	'' as cti_lgn_id
+	        ,	'' as cntr_cd
+	        ,	'' as team_cd
+	        ,	'' as dept_cd
+	        ,	'' as team_nm
+	        ,	'' as usr_grd_cd
+	    FROM om001 
+	    WHERE usr_id = #{usr_id}
+	      AND NOT EXISTS (SELECT 1 FROM om001 WHERE ret_dt is not null) -->
+		/* end */
+	</select>
+	
+  <update id="usrUseYn" parameterType="map">
+    UPDATE om001
+    SET use_yn = 'N'
+    WHERE usr_id = #{usr_id}
+  </update> 
+ 
+	<select id="loginFromErp" parameterType="map" resultType="map">
+		SELECT '200' as login_code
+			,	'정상 로그인 됨' as login_desc
+			,	usr_id
+			,	usr_nm
+			,	extn_no
+			,	cti_use_yn
+			,	cti_lgn_id
+			,	cntr_cd
+			,	team_cd
+			,	(
+						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+							<property name="p_tp_cd" value="'90003'"/>  								
+							<property name="p_cd" value="team_cd"/>  								
+		 				</include>
+		     	)
+			<!-- getCodeNM(team_cd, '90003') --> AS team_nm
+			,	usr_grd_cd
+		FROM om001
+		WHERE usr_id = #{usr_id}
+		UNION  ALL 
+		SELECT '404' as login_code
+			,	'아이디가 존재하지 않습니다' as login_desc
+			,	'' as usr_id
+			,	'' as usr_nm
+			,	'' as extn_no
+			,	'' as cti_use_yn
+			,	'' as cti_lgn_id
+			,	'' as cntr_cd
+			,	'' as team_cd
+			,	'' as team_nm
+			,	'' as usr_grd_cd
+		FROM db_root
+		WHERE NOT EXISTS (SELECT 1 FROM om001 WHERE usr_id = #{usr_id}) and rownum = 1
+	</select>
+	
+	<select id="selectUserInfo" resultType="map">
+		SELECT usr_id ,usr_nm FROM om001
+	</select>
+	
+	 <select id="selectMessageUsrList" parameterType="map" resultType="map">
+		SELECT  usr_nm
+		     ,  usr_id
+		     ,  (
+						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+							<property name="p_tp_cd" value="'90003'"/>  								
+							<property name="p_cd" value="team_cd"/>  								
+		 				</include>
+		     	)
+		    <!--  getCodeNM(team_cd,'90003') -->AS team_cd
+		     ,  (
+						<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+							<property name="p_tp_cd" value="'90002'"/>  								
+							<property name="p_cd" value="cntr_cd"/>  								
+		 				</include>
+		     	) 
+		     <!-- getCodeNM(cntr_cd,'90002') -->AS cntr_cd
+		     , decode(TEAM_CD,'9000','1','1001','2','1002','3','1003','4','9000','5','6') as orderby 
+		  FROM  om001
+		 WHERE 1 = 1
+		 	AND use_yn = 'Y'  
+		    <!--  AND usr_id != #{login_usr_id} -->
+		    AND (ret_dt is null OR ret_dt = '')
+		<if test="cntr_cd != null and !cntr_cd.equals('') and !cntr_cd.equals('all')">
+			AND cntr_cd = #{cntr_cd}
+		</if>
+		<if test="team_cd != null and !team_cd.equals('') and !team_cd.equals('all')">
+			AND team_cd = #{team_cd}
+		</if>
+		<if test="srchval != null and !srchval.equals('')">
+			AND INSTR(usr_nm, #{srchval}) > 0
+		</if>
+		<if test="sidx != null and sord != null">
+		 ORDER BY orderby, ${sidx} ${sord}
+		</if>
+	</select>
+	
+	<select id="pwdList" parameterType="map" resultType="map">
+		SELECT  t1.usr_id as usr_id
+			, t1.usr_nm as usr_nm
+			, t1.PWD_ENC_CONT as pwd
+			, t1.mod_dt as mod_dt
+			, t1.mod_tm as mod_tm
+			, getFormatDate(t1.mod_dt) AS mod_dt_format
+			, getFormatTime(t1.mod_tm) AS mod_tm_format
+			, getFormatDate(t1.pw_mod_dt) AS pw_mod_dt_format
+			, t1.mod_usr_id as mod_usr_id
+		FROM om001 t1
+		WHERE usr_id = #{usr_id}
+	</select>
+ 
+ 	<sql id="selectListExcelTot">
+	SELECT COUNT(*) FROM om001
+				WHERE 1 = 1
+				<if test = "!chkRetire">
+					AND (ret_dt is null OR ret_dt = '')
+				</if>
+				<if test="gradeType != null and !gradeType.equals('all') and !gradeType.equals('')">
+					AND usr_grd_cd = #{gradeType}
+				</if>
+				<if test="tfSrchVal != null and !tfSrchVal.equals('')">
+					<if test="optSrchType.equals('usrId')">
+						AND upper(usr_id) like '%' || upper(#{tfSrchVal}) || '%'
+					</if>
+					<if test="optSrchType.equals('usrNm')">
+						AND upper(usr_nm) like '%' || upper(#{tfSrchVal}) || '%'
+					</if> 
+				</if>
+				<if test="tfCallSrchVal != null and !tfCallSrchVal.equals('')">
+						AND (upper(usr_id) like '%' || upper(#{tfCallSrchVal}) || '%'
+						OR upper(usr_nm) like '%' || upper(#{tfCallSrchVal}) || '%')
+				</if>
+				<if test="!notuse">
+					AND use_yn = 'Y'
+				</if>
+				<if test="cntr_cd != null and !cntr_cd.equals('all') and !cntr_cd.equals('')">
+					AND cntr_cd = #{cntr_cd}
+				</if>
+				<if test="team_cd != null and !team_cd.equals('all') and !team_cd.equals('')">
+					AND team_cd = #{team_cd}
+				</if>
+				<if test="dept_cd != null and !dept_cd.equals('all') and !dept_cd.equals('')">
+					AND dept_cd = #{dept_cd}
+				</if>
+				<if test="cmpg_usr_id != null and !cmpg_usr_id.equals('') and !cmpg_usr_id.equals('all')">
+					AND usr_id = #{cmpg_usr_id}
+				</if>
+				<if test="notLowLev != null and notLowLev">
+					<if test="or_cntr_cd != null and !or_cntr_cd.equals('all') and !or_cntr_cd.equals('')">
+						AND cntr_cd = #{or_cntr_cd}
+					</if>
+					<if test="or_team_cd != null and !or_team_cd.equals('all') and !or_team_cd.equals('')">
+						AND team_cd = #{or_team_cd}
+					</if>
+					<if test="or_dept_cd != null and !or_dept_cd.equals('all') and !or_dept_cd.equals('')">
+						AND dept_cd = #{or_dept_cd}
+					</if>
+				</if>
+				<if test="notLowLev != null and !notLowLev">
+					AND cntr_cd = #{or_cntr_cd}
+					AND team_cd = #{or_team_cd}
+					AND dept_cd = #{or_dept_cd}
+				</if> 
+	</sql>
+ 
+ 
+ <select id="selectListExcel" parameterType="map" resultType="map">
+		<if test="rows != null and page != null">
+		<!-- SELECT *
+		FROM
+		( -->
+			SELECT A1.*
+			,	#{page} AS PAGENUM
+			,	CEIL((<include refid="selectListExcelTot" />) / (#{rows}+0.0)) TOTPAGECOUNT
+			,	(<include refid="selectListExcelTot" />) AS TOTROWCOUNT
+			FROM
+			(
+		</if>
+				SELECT	usr_id
+						,	cntr_cd
+						, 	(
+								<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+									<property name="p_tp_cd" value="'90002'"/>  								
+									<property name="p_cd" value="cntr_cd"/>  								
+				 				</include>
+		     				)
+						<!-- getCodeNM(cntr_cd, '90002') --> AS cntr_nm
+						,	team_cd
+						, 	(
+								<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+									<property name="p_tp_cd" value="'90003'"/>  								
+									<property name="p_cd" value="team_cd"/>  								
+				 				</include>
+		     				)
+						<!-- getCodeNM(team_cd, '90003') --> AS team_nm
+						,	dept_cd
+						, 	(
+								<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+									<property name="p_tp_cd" value="'90004'"/>  								
+									<property name="p_cd" value="dept_cd"/>  								
+				 				</include>
+		     				)
+						<!-- getCodeNM(dept_cd, '90004') --> AS dept_nm
+						,	usr_nm
+						,	pwd_enc_cont
+						, USR_GRD_CD
+						,	(
+								<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+									<property name="p_tp_cd" value="'90006'"/>  								
+									<property name="p_cd" value="USR_GRD_CD"/>  								
+				 				</include>
+		     				)
+						<!-- getCodeNM(USR_GRD_CD, '90006') --> AS cd_nm
+						,	dty_cd
+						,	(
+								<include refid="softdb.monitor.mappers.OracleFunction.getCodeNM">
+									<property name="p_tp_cd" value="'90005'"/>  								
+									<property name="p_cd" value="dty_cd"/>  								
+				 				</include>
+		     				)
+						<!-- getCodeNM(dty_cd, '90005') --> AS dty_nm
+						,	cti_use_yn
+						,	cti_lgn_id
+						,	extn_no
+						,	at_rcv_yn
+						,	AT_RDY_YN AS AT_READY_YN
+						,	ent_dt
+						,	ret_dt
+						<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 						, 	(CASE WHEN ret_dt is not null THEN '퇴사' ELSE '' END) AS ret_yn -->
+						, 	(CASE WHEN ret_dt is not null OR ret_dt != '' THEN '퇴사' ELSE '' END) AS ret_yn
+						,	REGEXP_REPLACE(getFormatPhoneNum(tel_no),substr(getFormatPhoneNum(tel_no),4,length(tel_no)-5),'-****-') as tel_no
+						,	REGEXP_REPLACE(getFormatPhoneNum(cel_no),substr(getFormatPhoneNum(cel_no),4,length(cel_no)-5),'-****-') as cel_no
+						,	REGEXP_REPLACE(getFormatPhoneNum(cel_no),substr(getFormatPhoneNum(cel_no),4,length(cel_no)-5),'-****-') as cel_no_format
+						,	REGEXP_REPLACE(getFormatPhoneNum(fax_no),substr(getFormatPhoneNum(fax_no),4,length(fax_no)-5),'-****-') as fax_no
+						,	eml_adr
+						,	pc_ip
+						,	pc_mac
+						,	usr_img_pth
+						,	crt_dt
+						,	crt_tm
+						,	crt_usr_id
+						,	mod_dt
+						,	getFormatDate(mod_dt) AS mod_dt_format
+						,	getFormatDate(mod_dt) AS pw_mod_dt_format
+						,	mod_tm
+						,	mod_usr_id
+						,   RET_RSN as RET_RSN
+				FROM om001
+				WHERE 1 = 1
+				<if test = "!chkRetire">
+					AND (ret_dt is null OR ret_dt = '')
+				</if>
+				<if test="gradeType != null and !gradeType.equals('all') and !gradeType.equals('')">
+					AND usr_grd_cd = #{gradeType}
+				</if>
+				<if test="tfSrchVal != null and !tfSrchVal.equals('')">
+					<if test="optSrchType.equals('usrId')">
+						AND upper(usr_id) like '%' || upper(#{tfSrchVal}) || '%'
+					</if>
+					<if test="optSrchType.equals('usrNm')">
+						AND upper(usr_nm) like '%' || upper(#{tfSrchVal}) || '%'
+					</if> 
+				</if>
+				<if test="tfCallSrchVal != null and !tfCallSrchVal.equals('')">
+						AND (upper(usr_id) like '%' || upper(#{tfCallSrchVal}) || '%'
+						OR upper(usr_nm) like '%' || upper(#{tfCallSrchVal}) || '%')
+				</if>
+				<if test="!notuse">
+					AND use_yn = 'Y'
+				</if>
+				<if test="cntr_cd != null and !cntr_cd.equals('all') and !cntr_cd.equals('')">
+					AND cntr_cd = #{cntr_cd}
+				</if>
+				<if test="team_cd != null and !team_cd.equals('all') and !team_cd.equals('')">
+					AND team_cd = #{team_cd}
+				</if>
+				<if test="dept_cd != null and !dept_cd.equals('all') and !dept_cd.equals('')">
+					AND dept_cd = #{dept_cd}
+				</if>
+				<if test="cmpg_usr_id != null and !cmpg_usr_id.equals('') and !cmpg_usr_id.equals('all')">
+					AND usr_id = #{cmpg_usr_id}
+				</if>
+				<if test="notLowLev != null and notLowLev">
+					<if test="or_cntr_cd != null and !or_cntr_cd.equals('all') and !or_cntr_cd.equals('')">
+						AND cntr_cd = #{or_cntr_cd}
+					</if>
+					<if test="or_team_cd != null and !or_team_cd.equals('all') and !or_team_cd.equals('')">
+						AND team_cd = #{or_team_cd}
+					</if>
+					<if test="or_dept_cd != null and !or_dept_cd.equals('all') and !or_dept_cd.equals('')">
+						AND dept_cd = #{or_dept_cd}
+					</if>
+				</if>
+				<if test="notLowLev != null and !notLowLev">
+					AND cntr_cd = #{or_cntr_cd}
+					AND team_cd = #{or_team_cd}
+					AND dept_cd = #{or_dept_cd}
+				</if>
+				<if test="sidx == null and sord == null">
+				ORDER BY usr_nm
+				</if>
+				<if test="sidx != null and sord != null">
+				ORDER BY ${sidx} ${sord}
+				</if>
+		<if test="rows != null and page != null">
+			LIMIT #{rows} OFFSET #{rows}*(#{page}-1)
+			) A1
+		<!-- )
+ 		WHERE PAGENUM = #{page} -->
+ 		</if>
+	</select>
+	
+	<sql id="lflyStatsListTot">
+	SELECT COUNT(*) FROM (
+				SELECT A.YEAR1,
+					'1.ENT' TYP,
+					<!-- 2020.01.08 hhs is null 수정 -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_01, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_02, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_03, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_04, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_05, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_06, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_07, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_08, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_09, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_10, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_11, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_12, -->
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_01,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_02,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_03,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_04,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_05,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_06,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_07,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_08,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_09,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_10,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_11,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_12,
+					SUM(CASE WHEN B.TEAM_CD = '9000' THEN 1 ELSE 0 END) CNT_MANAGER,
+					SUM(CASE WHEN B.TEAM_CD LIKE '100%' THEN 1 ELSE 0 END) CNT_AGENT
+				FROM (
+					SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1 FROM OM001
+					<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (ENT_DT LIKE #{g_entStartDt}||'%' OR ENT_DT LIKE #{g_entEndDt}||'%' ) -->
+					  		 WHERE ENT_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+				UNION
+					SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1 FROM OM001
+					<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (RET_DT LIKE #{g_entStartDt}||'%' OR RET_DT LIKE #{g_entEndDt}||'%' ) -->
+					  		 WHERE RET_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+					</if>
+				) A
+				CROSS JOIN OM001 B
+				GROUP BY A.YEAR1
+				UNION
+				SELECT A.YEAR1,
+					'2.RET' TYP,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) CNT_01,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) CNT_02,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) CNT_03,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) CNT_04,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) CNT_05,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) CNT_06,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) CNT_07,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) CNT_08,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) CNT_09,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) CNT_10,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) CNT_11,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) CNT_12,
+					0 CNT_MANAGER,
+					0 CNT_AGENT
+				FROM (
+					SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1 FROM OM001
+					   	<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (ENT_DT LIKE #{g_entStartDt} || '%' OR ENT_DT LIKE #{g_entEndDt} || '%') -->
+					  		 WHERE ENT_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+					   
+				UNION
+					SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1 FROM OM001
+					<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (RET_DT LIKE #{g_entStartDt} || '%' OR RET_DT LIKE #{g_entEndDt} || '%') -->
+					  		 WHERE RET_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+					</if>
+					   
+					) A
+						CROSS JOIN OM001 B
+						GROUP BY A.YEAR1
+    UNION
+      SELECT A.YEAR1,
+             '3.AVGS' TYP,
+             <!-- 2020.01.08 hhs is null 수정 -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_01, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_02, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_03, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_04, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_05, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_06, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_07, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_08, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_09, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_10, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_11, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_12, -->
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_01,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_02,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_03,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_04,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_05,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_06,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_07,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_08,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_09,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_10,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_11,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_12,
+             0 CNT_MANAGER,
+             0 CNT_AGENT
+        FROM (
+          SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1
+            FROM OM001
+						<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (ENT_DT LIKE #{g_entStartDt}||'%' OR ENT_DT LIKE #{g_entEndDt}||'%') -->
+					  		 WHERE ENT_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+					   
+           UNION
+          SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1
+            FROM OM001
+			<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (RET_DT LIKE #{g_entStartDt}||'%' OR RET_DT LIKE #{g_entEndDt}||'%') -->
+					  		 WHERE RET_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+			</if>
+					   
+             ) A
+             CROSS JOIN OM001 B
+    GROUP BY A.YEAR1
+        ) 
+	</sql>
+	
+	<!-- 이직율 통계 -->
+	<select id="lflyStatsList" parameterType="map" resultType="map">
+		<if test="rows != null and page != null">
+		<!-- SELECT *
+		FROM
+		( -->
+			SELECT A1.*
+			,	#{page} AS PAGENUM
+			,	CEIL((<include refid="lflyStatsListTot" />) / (#{rows}+0.0)) TOTPAGECOUNT
+			,	(<include refid="lflyStatsListTot" />) AS TOTROWCOUNT
+			FROM
+			(
+		</if>
+				 SELECT RESULTS.YEAR1 ||' 년' as YEAR1
+               , RESULTS.TYP as typ
+               , RESULTS.CNT_01 as cnt_01
+               , RESULTS.CNT_02 as cnt_02
+               , RESULTS.CNT_03 as cnt_03
+               , RESULTS.CNT_04 as cnt_04
+               , RESULTS.CNT_05 as cnt_05
+               , RESULTS.CNT_06 as cnt_06
+               , RESULTS.CNT_07 as cnt_07
+               , RESULTS.CNT_08 as cnt_08
+               , RESULTS.CNT_09 as cnt_09
+               , RESULTS.CNT_10 as cnt_10
+               , RESULTS.CNT_11 as cnt_11
+               , RESULTS.CNT_12 as cnt_12
+               , RESULTS.CNT_MANAGER||' / '|| RESULTS.CNT_AGENT as cnt_usr
+         	   , (CASE WHEN TYP IN ('1.ENT','2.RET') THEN CNT_01+CNT_02+CNT_03+CNT_04+CNT_05+CNT_06+CNT_07+CNT_08+CNT_09+CNT_10+CNT_11+CNT_12
+                 ELSE (CNT_01+CNT_02+CNT_03+CNT_04+CNT_05+CNT_06+CNT_07+CNT_08+CNT_09+CNT_10+CNT_11+CNT_12) END   ) TOT
+               , TO_CHAR(ROUND((CNT_01+CNT_02+CNT_03+CNT_04+CNT_05+CNT_06+CNT_07+CNT_08+CNT_09+CNT_10+CNT_11+CNT_12)/
+                 cast(DECODE(DECODE(CNT_01,0,0,1)+DECODE(CNT_02,0,0,1)+DECODE(CNT_03,0,0,1)+DECODE(CNT_04,0,0,1)+DECODE(CNT_05,0,0,1)+DECODE(CNT_06,0,0,1)+
+                 DECODE(CNT_07,0,0,1)+DECODE(CNT_08,0,0,1)+DECODE(CNT_09,0,0,1)+DECODE(CNT_10,0,0,1)+DECODE(CNT_11,0,0,1)+DECODE(CNT_12,0,0,1),0,1,
+                 DECODE(CNT_01,0,0,1)+DECODE(CNT_02,0,0,1)+DECODE(CNT_03,0,0,1)+DECODE(CNT_04,0,0,1)+DECODE(CNT_05,0,0,1)+DECODE(CNT_06,0,0,1)+
+                 DECODE(CNT_07,0,0,1)+DECODE(CNT_08,0,0,1)+DECODE(CNT_09,0,0,1)+DECODE(CNT_10,0,0,1)+DECODE(CNT_11,0,0,1)+DECODE(CNT_12,0,0,1) ) as double)
+                 ,2)) AVGS
+    			FROM (
+				SELECT A.YEAR1,
+					'1.ENT' TYP,
+					<!-- 2020.01.08 hhs is null 수정 -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_01, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_02, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_03, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_04, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_05, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_06, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_07, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_08, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_09, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_10, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_11, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_12, -->
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_01,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_02,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_03,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_04,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_05,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_06,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_07,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_08,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_09,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_10,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_11,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_12,
+					SUM(CASE WHEN B.TEAM_CD = '9000' THEN 1 ELSE 0 END) CNT_MANAGER,
+					SUM(CASE WHEN B.TEAM_CD LIKE '100%' THEN 1 ELSE 0 END) CNT_AGENT
+				FROM (
+					SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1 FROM OM001
+					<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (ENT_DT LIKE #{g_entStartDt}||'%' OR ENT_DT LIKE #{g_entEndDt}||'%' ) -->
+					  		 WHERE ENT_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+				UNION
+					SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1 FROM OM001
+					<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (RET_DT LIKE #{g_entStartDt}||'%' OR RET_DT LIKE #{g_entEndDt}||'%' ) -->
+					  		 WHERE RET_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+					</if>
+				) A
+				CROSS JOIN OM001 B
+				GROUP BY A.YEAR1
+				UNION
+				SELECT A.YEAR1,
+					'2.RET' TYP,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) CNT_01,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) CNT_02,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) CNT_03,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) CNT_04,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) CNT_05,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) CNT_06,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) CNT_07,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) CNT_08,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) CNT_09,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) CNT_10,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) CNT_11,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) CNT_12,
+					0 CNT_MANAGER,
+					0 CNT_AGENT
+				FROM (
+					SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1 FROM OM001
+					   	<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (ENT_DT LIKE #{g_entStartDt} || '%' OR ENT_DT LIKE #{g_entEndDt} || '%') -->
+					  		 WHERE ENT_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+					   
+				UNION
+					SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1 FROM OM001
+					<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (RET_DT LIKE #{g_entStartDt} || '%' OR RET_DT LIKE #{g_entEndDt} || '%') -->
+					  		 WHERE RET_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+					</if>
+					   
+					) A
+						CROSS JOIN OM001 B
+						GROUP BY A.YEAR1
+    UNION
+      SELECT A.YEAR1,
+             '3.AVGS' TYP,
+             <!-- 2020.01.08 hhs is null 수정 -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_01, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_02, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1|| '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_03, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_04, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_05, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1|| '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_06, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_07, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_08, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_09, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_10, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_11, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_12, -->
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_01,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_02,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_03,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_04,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_05,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_06,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_07,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_08,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_09,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_10,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_11,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_12,
+             0 CNT_MANAGER,
+             0 CNT_AGENT
+        FROM (
+          SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1
+            FROM OM001
+						<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (ENT_DT LIKE #{g_entStartDt}||'%' OR ENT_DT LIKE #{g_entEndDt}||'%') -->
+					  		 WHERE ENT_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+					   
+           UNION
+          SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1
+            FROM OM001
+			<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+<!-- 					  		 WHERE (RET_DT LIKE #{g_entStartDt}||'%' OR RET_DT LIKE #{g_entEndDt}||'%') -->
+					  		 WHERE RET_DT BETWEEN #{g_entStartDt} AND #{g_entEndDt}
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+			</if>
+					   
+             ) A
+             CROSS JOIN OM001 B
+    GROUP BY A.YEAR1
+        ) RESULTS	
+        		<if test="sidx != null and sord != null">
+				ORDER BY ${sidx} ${sord} 
+				</if>
+		<if test="rows != null and page != null">
+			LIMIT #{rows} OFFSET #{rows}*(#{page}-1)
+			) A1
+		<!-- )
+ 		WHERE PAGENUM = #{page} -->
+ 		</if>
+	</select>
+	
+	<sql id="lflyStatsListExcelTot">
+	SELECT COUNT(*) FROM (
+				SELECT A.YEAR1,
+					'정원' TYP,
+					<!-- 2020.01.08 hhs is null 수정 -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_01, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_02, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_03, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_04, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_05, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_06, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_07, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_08, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_09, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_10, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_11, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_12, -->
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_01,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_02,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_03,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_04,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_05,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_06,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_07,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_08,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_09,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_10,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_11,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_12,
+					SUM(CASE WHEN B.TEAM_CD = '9000' THEN 1 ELSE 0 END) CNT_MANAGER,
+					SUM(CASE WHEN B.TEAM_CD LIKE '100%' THEN 1 ELSE 0 END) CNT_AGENT
+				FROM (
+					SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1 FROM OM001
+							<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (ENT_DT LIKE #{g_entStartDt} || '%' OR ENT_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+					   
+				UNION
+					SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1 FROM OM001
+					<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (RET_DT LIKE #{g_entStartDt} || '%' OR RET_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+					</if>
+				) A
+				CROSS JOIN OM001 B
+				GROUP BY A.YEAR1
+				UNION
+				SELECT A.YEAR1,
+					'퇴사' TYP,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) CNT_01,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) CNT_02,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) CNT_03,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) CNT_04,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) CNT_05,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) CNT_06,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) CNT_07,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) CNT_08,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) CNT_09,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) CNT_10,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) CNT_11,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) CNT_12,
+					0 CNT_MANAGER,
+					0 CNT_AGENT
+				FROM (
+					SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1 FROM OM001
+					   		<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (ENT_DT LIKE #{g_entStartDt} || '%' OR ENT_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+					   
+				UNION
+					SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1 FROM OM001
+					<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (RET_DT LIKE #{g_entStartDt} || '%' OR RET_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+					</if>
+					   
+					) A
+						CROSS JOIN OM001 B
+						GROUP BY A.YEAR1
+    UNION
+      SELECT A.YEAR1,
+             '이직율' TYP,
+             <!-- 2020.01.08 hhs is null 수정 -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_01, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_02, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_03, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_04, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_05, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1|| '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_06, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_07, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_08, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_09, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_10, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_11, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_12, -->
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_01,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_02,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_03,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_04,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_05,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_06,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_07,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_08,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_09,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_10,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_11,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_12,
+             0 CNT_MANAGER,
+             0 CNT_AGENT
+        FROM (
+          SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1
+            FROM OM001
+			 		<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (ENT_DT LIKE #{g_entStartDt} || '%' OR ENT_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+					   
+           UNION
+          SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1
+            FROM OM001
+			<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (RET_DT LIKE #{g_entStartDt} || '%' OR RET_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+			</if>
+					   
+             ) A
+             CROSS JOIN OM001 B
+    GROUP BY A.YEAR1 
+        )
+	</sql>
+
+	
+	<!-- 이직률 현황 엑셀 -->
+		<select id="lflyStatsListExcel" parameterType="map" resultType="map">
+		<if test="rows != null and page != null">
+		<!-- SELECT *
+		FROM
+		( -->
+			SELECT A1.*
+			,	#{page} AS PAGENUM
+			,	CEIL((<include refid="lflyStatsListExcelTot" />) / (#{rows}+0.0)) TOTPAGECOUNT
+			,	(<include refid="lflyStatsListExcelTot" />) AS TOTROWCOUNT
+			FROM
+			(
+		</if>
+				 SELECT RESULTS.YEAR1 ||' 년' as YEAR1
+               , RESULTS.TYP as typ
+               , RESULTS.CNT_01 as cnt_01
+               , RESULTS.CNT_02 as cnt_02
+               , RESULTS.CNT_03 as cnt_03
+               , RESULTS.CNT_04 as cnt_04
+               , RESULTS.CNT_05 as cnt_05
+               , RESULTS.CNT_06 as cnt_06
+               , RESULTS.CNT_07 as cnt_07
+               , RESULTS.CNT_08 as cnt_08
+               , RESULTS.CNT_09 as cnt_09
+               , RESULTS.CNT_10 as cnt_10
+               , RESULTS.CNT_11 as cnt_11
+               , RESULTS.CNT_12 as cnt_12
+               , RESULTS.CNT_MANAGER||' / '|| RESULTS.CNT_AGENT as cnt_usr
+         , (CASE WHEN TYP IN ('1.ENT','2.RET') THEN CNT_01+CNT_02+CNT_03+CNT_04+CNT_05+CNT_06+CNT_07+CNT_08+CNT_09+CNT_10+CNT_11+CNT_12
+               ELSE  (CNT_01+CNT_02+CNT_03+CNT_04+CNT_05+CNT_06+CNT_07+CNT_08+CNT_09+CNT_10+CNT_11+CNT_12) END   ) TOT,
+         ROUND((CNT_01+CNT_02+CNT_03+CNT_04+CNT_05+CNT_06+CNT_07+CNT_08+CNT_09+CNT_10+CNT_11+CNT_12)/
+            DECODE(DECODE(CNT_01,0,0,1)+DECODE(CNT_02,0,0,1)+DECODE(CNT_03,0,0,1)+DECODE(CNT_04,0,0,1)+DECODE(CNT_05,0,0,1)+DECODE(CNT_06,0,0,1)+
+                   DECODE(CNT_07,0,0,1)+DECODE(CNT_08,0,0,1)+DECODE(CNT_09,0,0,1)+DECODE(CNT_10,0,0,1)+DECODE(CNT_11,0,0,1)+DECODE(CNT_12,0,0,1),0,1,
+                   DECODE(CNT_01,0,0,1)+DECODE(CNT_02,0,0,1)+DECODE(CNT_03,0,0,1)+DECODE(CNT_04,0,0,1)+DECODE(CNT_05,0,0,1)+DECODE(CNT_06,0,0,1)+
+                   DECODE(CNT_07,0,0,1)+DECODE(CNT_08,0,0,1)+DECODE(CNT_09,0,0,1)+DECODE(CNT_10,0,0,1)+DECODE(CNT_11,0,0,1)+DECODE(CNT_12,0,0,1) )
+             ,2) AVGS 
+    			FROM (
+				SELECT A.YEAR1,
+					'정원' TYP,
+					<!-- 2020.01.08 hhs is null 수정 -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_01, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_02, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_03, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_04, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_05, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_06, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_07, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_08, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_09, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_10, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_11, -->
+<!-- 					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_12, -->
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_01,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_02,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_03,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_04,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_05,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_06,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_07,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_08,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_09,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_10,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_11,
+					SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END) CNT_12,
+					SUM(CASE WHEN B.TEAM_CD = '9000' THEN 1 ELSE 0 END) CNT_MANAGER,
+					SUM(CASE WHEN B.TEAM_CD LIKE '100%' THEN 1 ELSE 0 END) CNT_AGENT
+				FROM (
+					SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1 FROM OM001
+							<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (ENT_DT LIKE #{g_entStartDt} || '%' OR ENT_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+					   
+				UNION
+					SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1 FROM OM001
+					<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (RET_DT LIKE #{g_entStartDt} || '%' OR RET_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+					</if>
+				) A
+				CROSS JOIN OM001 B
+				GROUP BY A.YEAR1
+				UNION
+				SELECT A.YEAR1,
+					'퇴사' TYP,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) CNT_01,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) CNT_02,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) CNT_03,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) CNT_04,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) CNT_05,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) CNT_06,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) CNT_07,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) CNT_08,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) CNT_09,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) CNT_10,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) CNT_11,
+					SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) CNT_12,
+					0 CNT_MANAGER,
+					0 CNT_AGENT
+				FROM (
+					SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1 FROM OM001
+					   		<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (ENT_DT LIKE #{g_entStartDt} || '%' OR ENT_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+					   
+				UNION
+					SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1 FROM OM001
+					<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (RET_DT LIKE #{g_entStartDt} || '%' OR RET_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+					</if>
+					   
+					) A
+						CROSS JOIN OM001 B
+						GROUP BY A.YEAR1
+    UNION
+      SELECT A.YEAR1,
+             '이직율' TYP,
+             <!-- 2020.01.08 hhs is null 수정 -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_01, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_02, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_03, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_04, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_05, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1|| '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_06, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_07, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_08, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_09, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_10, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_11, -->
+<!--              ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) /  -->
+<!--                   DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1, -->
+<!--                          SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_12, -->
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '01%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_01,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '02%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_02,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '03%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0331' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0301' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_03,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '04%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0431' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0401' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_04,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '05%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0531' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0501' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_05,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '06%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0631' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0601' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_06,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '07%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0731' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0701' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_07,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '08%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0831' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0801' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_08,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '09%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0931' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '0901' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_09,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '10%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1031' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1001' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_10,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '11%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '1131' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1101' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_11,
+             ROUND(SUM(CASE WHEN B.RET_DT LIKE A.YEAR1 || '12%'  THEN 1 ELSE 0 END) / 
+                  DECODE(SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END), 0 , 1,
+                         SUM(CASE WHEN B.ENT_DT <![CDATA[<=]]> A.YEAR1 || '0231' AND ( B.RET_DT IS NULL OR B.RET_DT = '' OR A.YEAR1 || '1201' <![CDATA[<=]]> B.RET_DT ) THEN 1 ELSE 0 END)) * 100,2) CNT_12,
+             0 CNT_MANAGER,
+             0 CNT_AGENT
+        FROM (
+          SELECT DISTINCT SUBSTR(ENT_DT,0,4) YEAR1
+            FROM OM001
+			 		<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (ENT_DT LIKE #{g_entStartDt} || '%' OR ENT_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE ENT_DT IS NOT NULL -->
+					  		 WHERE ENT_DT IS NOT NULL OR ENT_DT != ''
+					   </if>
+					</if>
+					   
+           UNION
+          SELECT DISTINCT SUBSTR(RET_DT,0,4) YEAR1
+            FROM OM001
+			<if test="g_entStartDt != null and !g_entStartDt.equals('') and g_entEndDt != null and !g_entEndDt.equals('')">
+						<if test="!g_entStartDt.equals('all') and !g_entEndDt.equals('all')">
+					  		 WHERE (RET_DT LIKE #{g_entStartDt} || '%' OR RET_DT LIKE #{g_entEndDt} || '%')
+					   </if>
+					   	<if test="g_entStartDt.equals('all') and g_entEndDt.equals('all')">
+					   	<!-- 2020.01.08 hhs is not null 수정 -->
+<!-- 					  		 WHERE RET_DT IS NOT NULL -->
+					  		 WHERE RET_DT IS NOT NULL OR RET_DT != ''
+					   </if>
+			</if>
+					   
+             ) A
+             CROSS JOIN OM001 B
+    GROUP BY A.YEAR1 
+        ) RESULTS	
+				<if test="sidx != null and sord != null">
+				ORDER BY ${sidx} ${sord}
+				</if>
+		<if test="rows != null and page != null">
+			LIMIT #{rows} OFFSET #{rows}*(#{page}-1)
+			) A1
+		<!-- )
+ 		WHERE PAGENUM = #{page} -->
+ 		</if>
+	</select>
+	<select id="selectUsr" parameterType="map" resultType="map">
+		select 
+				'(최근 수정일: '||' '||GETFORMATDATE(o1.PW_MOD_DT)||')' as ch_pwd 
+		from om001 o1
+		 where USR_ID = #{usrId}
+	</select>
+</mapper>
