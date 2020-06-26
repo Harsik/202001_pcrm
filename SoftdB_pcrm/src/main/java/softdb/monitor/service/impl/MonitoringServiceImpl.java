@@ -60,4 +60,15 @@ public class MonitoringServiceImpl extends EgovAbstractServiceImpl implements Mo
 		return ch001.counsellist(map);
 	}
 	
+	//hhs codeList
+	@Override
+	public List selectCodeList(Map map) throws Exception {
+		return cd002.selectCodeList(map);
+	}
+	
+	@Override
+	public List selectCtgList(Map map) throws Exception {
+		return cd002.selectCtgList(map);
+	}
+	
 }

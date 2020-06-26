@@ -1,14 +1,114 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="softdb.monitor.mappers.Cd002">
-
+	
+    <select id="selectCodeList" parameterType="hashmap" resultType="egovMap">
+    	/* Cd002.selectCodeList
+    	*/
+    	SELECT 
+			ext1_cd AS id
+			,cd_nm AS name
+			,ext2_cd AS xx
+			,ext3_cd AS yy
+		FROM 
+			sm002
+		WHERE tp_cd='98002'
+		ORDER BY id
+    </select>
+    
+	<select id="selectCtgList" parameterType="hashmap" resultType="egovMap">
+		SELECT
+			ctg_lg_nm,
+			totCnt,
+			(
+				SELECT
+					COUNT(*)
+				FROM
+					ch001 t1
+					LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
+				WHERE
+					t1.crt_dt = '20200619'
+<!-- 					t1.crt_dt = SYSDATE -->
+					AND h_addr =  (
+						SELECT
+							cd
+						FROM
+							sm002
+						WHERE
+							tp_cd = '98002'
+							AND ext1_cd = #{sigungu}
+					)
+					AND t1.ctg_lg_cd = a.ctg_lg_cd
+			) AS addrCnt
+		FROM
+			(
+				SELECT
+					ctg_lg_cd,
+					(
+						SELECT
+							ctg_cd_nm
+						FROM
+							om020
+						WHERE
+							ctg_cd = ctg_lg_cd
+					) AS ctg_lg_nm,
+					COUNT(*) AS totCnt
+				FROM
+					CH001 t1
+					LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
+				WHERE
+					t1.crt_dt > '20200619'
+<!-- 					t1.crt_dt > SYSDATE -->
+				GROUP BY
+					ctg_lg_cd
+				ORDER BY
+					totCnt DESC
+			) a
+			WHERE
+				ROWNUM BETWEEN 1 AND 5
+			ORDER BY
+				addrCnt desc
+	</select>
+	
 	<select id="selectMainChartList" parameterType="hashmap" resultType="egovMap">
 		/* Cd002.selectMainChartList
 		*/
 		<![CDATA[
 			SELECT
-				*
-			FROM CD002
+				h_addr,
+				SUM(cnt) AS cnt
+			FROM
+				(
+					SELECT
+						DECODE(h_addr, NULL, 'ERR', '', 'ERR', h_addr) AS h_addr,
+						COUNT(*) AS cnt
+					FROM
+						ch010
+					WHERE
+						h_addr IN (
+							SELECT
+								cd
+							FROM
+								sm002
+							WHERE
+								tp_cd = '98002'
+						)
+					GROUP BY
+						h_addr
+				)
+			WHERE
+				1 = 1
+			GROUP BY
+				h_addr
+			UNION ALL
+			SELECT
+				'합계',
+				COUNT(*)
+			FROM
+				ch010
+			WHERE
+				1 = 1
+
 		]]>
 	</select>
 

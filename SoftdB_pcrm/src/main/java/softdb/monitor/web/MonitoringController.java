@@ -66,7 +66,6 @@ public class MonitoringController extends BaseController {
  	public String monitoringHome (HttpServletRequest req, ModelMap model) throws Exception {
 //		System.out.println(">>> gProperty referer : " +  gRef);
 //		System.out.println(">>> gProperty endUrl : " +  endUrl);
-		
 		if (!checkAuthority(req, model)) {
 			String reqUsrId = req.getParameter("reqUsrId");
 			System.out.println(">>> reqUsrId : " + reqUsrId);
@@ -75,14 +74,17 @@ public class MonitoringController extends BaseController {
 			
 			// PRCM 권한을 갖고 링크 타고 들어 온 경우
 			if(referer != null && referer.contains(gRef) && referer.endsWith(endUrl) && reqUsrId != null && !reqUsrId.equals("")) {
+				System.out.println("=====PRCM 권한을 갖고 링크 타고 들어 온 경우");
 				// login 처리
 				LoginVO resultVO = new LoginVO();
 				resultVO.setUsrId(reqUsrId);
 				req.getSession().setAttribute("LoginVO", resultVO);
+				System.out.println("여기---------------"+resultVO);
 				return "/softdb/monitor/MonitoringMapView";
 			}
 			
 			// 그냥 URL 접근하거나 링크는 타고 왔어도 형식이 맞지 않는 경우 Login 페이지 이동 
+			System.out.println("=====일반 권한을 갖고 링크 타고 들어 온 경우");
 			String cPath = req.getContextPath();
 			String url = req.getRequestURL().toString();
 			if(url != null) {
@@ -108,12 +110,46 @@ public class MonitoringController extends BaseController {
 			System.out.println("params : " + params);
 			List list = monitoringService.selectMainChartList(params);
 			System.out.println("chart list : " + list);
+			model.addAttribute("result", list);
+//			List ctgList = monitoringService.selectCtgList(params);
+//			System.out.println("code ctgList : " + ctgList);
+//			model.addAttribute("ctgList", ctgList);
 			
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
-		model.addAttribute("result", "true");
+//		model.addAttribute("result", "true");
 		return jsonView;
+	}
+	
+	@RequestMapping(value = "/monitor/ajaxCodeList.do")
+	public View ajaxCodeList(HttpServletRequest req, Model model, @RequestParam Map params) throws Exception {
+		try {
+			System.out.println("params : " + params);
+			List list = monitoringService.selectCodeList(params);
+			System.out.println("code list : " + list);
+			model.addAttribute("result", list);
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+//		model.addAttribute("result", "true");
+		return jsonView;
+	}
+	
+	@RequestMapping(value = "/monitor/ajaxCtgList.do")
+	public String ajaxCtgList(HttpServletRequest req, Model model, @RequestParam Map params) throws Exception {
+		try {
+			System.out.println("params : " + params);
+			List ctgList = monitoringService.selectCtgList(params);
+			System.out.println("code ctgList : " + ctgList);
+			model.addAttribute("ctgList", ctgList);
+			
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+//		model.addAttribute("result", "true");
+		return  "softdb/monitor/MonitoringMapView";
 	}
 	
 	@RequestMapping(value = "/monitor/detailMain.do")

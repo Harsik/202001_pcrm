@@ -28,4 +28,9 @@ public interface MonitoringService {
 
 	public List selectRtCounseltList(Map map) throws Exception;
 	
+	// hhs codeList
+	public List selectCodeList(Map map) throws Exception;
+	
+	public List selectCtgList(Map map) throws Exception;
+	
 }

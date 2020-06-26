@@ -78,7 +78,7 @@
 							<div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
 					            <div class="info-box brown-bg">
 									<i class="fa fa-phone"></i>
-									<div class="count" style="color:black">2,674</div>
+									<div class="count" id="totCnt" style="color:black">2,674</div>
 									<br>
 									<div class="title">전체 민원 수</div>
 					            </div>
@@ -89,7 +89,7 @@
 					          <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
 					            <div class="info-box green-bg">
 									<i class="fa fa-comments-o"></i>
-									<div class="count" style="color:black">538</div>
+									<div class="count" id="addrtCnt" style="color:black">538</div>
 									<br>
 									<div id="air_name2" class="title">비전1동</div>
 					            </div>
@@ -102,14 +102,13 @@
 	              	
               	</div>
               	<!-- // body map -->
-          
               
               <div class="panel-body">
               
 	              <div class="row"> <br> </div>
 	              <div class="row"> <br> </div>
 	              
-                <table class="table bootstrap-datatable countries">
+                <table class="table bootstrap-datatable countries" id="test">
                   
                   <thead>
                     <tr>
@@ -122,6 +121,19 @@
                   </thead>
                   
                   <tbody>
+                  ㅇ
+					<c:forEach var="name" items="${ctgList}" varStatus="status">
+					    <p>${status.count} : <c:out value="${ctgLgNm}" /></p>
+					</c:forEach>
+
+                  	<c:forEach items="${ctgList }" var="item">
+					<tr>
+						<td><c:out value="${item.ctgLgNm}"/></td>
+						<td><c:out value="${item.totCnt}"/></td>
+						<td><c:out value="${item.addrCnt}"/></td>
+					</tr>
+					</c:forEach>
+					<!--
                     <tr>
                       <%-- <td><img src="<c:url value='/'/>bootstrap/img/Germany.png" style="height:18px; margin-top:-2px;"></td> --%>
                       <td class="grid_td"><i class="fa fa-car"></i></td>
@@ -193,7 +205,7 @@
 						</div>
                       </td>
                     </tr>
-                    
+                    -->
                   </tbody>
                   
                 </table>
@@ -393,18 +405,69 @@ function dataLoad() {
 			, dataType: "json"
 			, success: function(result) {
 				console.log('> success ', result);
+				var idx = 0;
+				for(var i=0; i<sigunguArr.length; i++){
+					for(var j=0; j<result.result.length; j++){
+						// Chrome Version
+// 						var idx = sigunguArr.findIndex(obj => obj.name == result.result[j].hAddr);
+						// IE Version - IE에선 findIndex 지원하지 않는다.
+						sigunguArr.some(function(el, i) {
+						    if (el.name == result.result[j].hAddr) {
+						        idx = i;
+						        return true;
+						    }
+						});
+						
+						if(idx != -1) {sigunguArr[idx].cnt = result.result[j].cnt;}
+					}
+				}
+				// Chrome Version
+// 				var idx = sigunguArr.findIndex(obj => obj.id == $("#subId").val()); 
+				// IE Version - IE에선 findIndex 지원하지 않는다.
+				sigunguArr.some(function(el, i) {
+					if (el.id == $("#subId").val()) {
+					    idx = i;
+					    return true;
+					}
+				});
+				$("#addrtCnt").html(sigunguArr[idx].cnt);  //지역 카운트
+				
+				$("#totCnt").html(result.result.slice(-1)[0].cnt);  //합계 카운드
+				showCtgList();
 				showMarker();
 			}
 			, error: function(data) {
 				console.log('> error ', data);
 			}
 	    });
+		
+		
 }
 
+function showCtgList(){
+	//카테고리별 
+	$.ajax({
+		url : '${pageContext.request.contextPath}/monitor/ajaxCtgList.do'
+		, data : { 'sigungu' : sigungu}
+		, type: 'post'
+		, dataType: "json"
+		, success: function(result) {
+			console.log('> showCtgList ', result);
+			
+		}
+		, error: function(data) {
+			console.log('> error ', data);
+		}
+    });
+}
+			
 var idx = 0;
 function showMarker() {
 	$("#" + sigunguArr[idx].id).append( 
-			getMarkerDiv(sigunguArr[idx].id, sigunguArr[idx].xx, sigunguArr[idx].yy, 2 + (idx*5) ) 
+			// getMarkerDiv(id, xx, yy, cnt)
+			// {hAddr=기타, hCnt=2}, {hAddr=비전1동, hCnt=1}
+// 			getMarkerDiv(sigunguArr[idx].id, sigunguArr[idx].xx, sigunguArr[idx].yy, 2 + (idx*5) ) 
+			getMarkerDiv(sigunguArr[idx].id, sigunguArr[idx].xx, sigunguArr[idx].yy, sigunguArr[idx].cnt ) 
 	);
 	idx ++;
 	if(idx < sigunguArr.length) {
@@ -419,40 +482,31 @@ function showMarker() {
 
 var sigungu = '';
 var sigunguName = '';
-var sigunguArr = [
-		{id: "a01", name: "포승읍", xx:290, yy:495}
-		, {id: "a02", name: "청북읍", xx:486, yy:295}
-		, {id: "a03", name: "안중읍", xx:492, yy:470}
-		, {id: "a04", name: "현덕면", xx:485, yy:620}
-		, {id: "a05", name: "오성면", xx:640, yy:430}
-		, {id: "a06", name: "서탄면", xx:720, yy:100}
-		, {id: "a07", name: "고덕면", xx:740, yy:310}
-		, {id: "a08", name: "팽성읍", xx:760, yy:570}
-		, {id: "a09", name: "신장1동", xx:800, yy:145}
-		, {id: "a10", name: "신장2동", xx:760, yy:190}
-		, {id: "a11", name: "지산동", xx:840, yy:180}
-		, {id: "a12", name: "서정동", xx:810, yy:210}
-		, {id: "a13", name: "중앙동", xx:840, yy:265}
-		, {id: "a14", name: "세교동", xx:860, yy:400}
-		, {id: "a15", name: "원평동", xx:850, yy:470}
-		, {id: "a16", name: "동북동", xx:900, yy:445}
-		, {id: "a17", name: "송북동", xx:865, yy:175}
-		, {id: "a18", name: "진위면", xx:890, yy:80}
-		, {id: "a19", name: "비전1동", xx:980, yy:410}
-		, {id: "a20", name: "비전2동", xx:940, yy:455}
-		, {id: "a21", name: "신평동", xx:930, yy:510}
-		, {id: "a22", name: "용이동", xx:1030, yy:440}
-		, {id: "a23", name: "송탄동", xx:950, yy:290}
-];
+var sigunguArr = [];
 
 // 지도 위에 마커 그리기
 $(function() {
+	$.ajax({
+		url : '${pageContext.request.contextPath}/monitor/ajaxCodeList.do'
+		, data : JSON.stringify(sigunguArr)
+		, type: 'post'
+		, dataType: "json"
+		, success: function(result) {
+			console.log('> success ', result);
+			sigunguArr = result.result;
+			getLoc('a19');
+		}
+		, error: function(data) {
+			console.log('> error ', data);
+		}
+	});
 	
-	getLoc('a19');
+// 	getLoc('a19');
 	
- 	setInterval(function() {
- 		dataLoad();
- 	}, 5000);
+	// hhs 20.06.23 5초마다 refresh stop
+//  	setInterval(function() {
+//  		dataLoad();
+//  	}, 5000);
 });
 
 $("tr").click(function() {

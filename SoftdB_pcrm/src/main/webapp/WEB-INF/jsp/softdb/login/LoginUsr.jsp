@@ -26,9 +26,8 @@
 <link href="<c:url value='/'/>css/common.css" rel="stylesheet" type="text/css" >
 <link href="<c:url value='/'/>css/login.css" rel="stylesheet" type="text/css" >
 <script type="text/javascript">
-<!--
+//<!--
 function actionLogin() {
-
     if (document.loginForm.id.value =="") {
         alert("아이디를 입력하세요");
         return false;

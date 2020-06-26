@@ -25,5 +25,9 @@ public interface Cd002 {
 
 	List<?> selectMainChartList(Map map) throws Exception;
 
+	List<?> selectCodeList(Map map);
+	
+	List<?> selectCtgList(Map map);
+
 
 }
