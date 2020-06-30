@@ -1,8 +1,8 @@
 ﻿<%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
-<%-- <script type="text/javascript" src="<c:url value='/resources/js/common/listenRec.js'/>"></script>
-<script type="text/javascript" src="<c:url value='/resources/js/common/comCounselSpec.js'/>"></script> --%>
+<script type="text/javascript" src="<c:url value='/resources/js/common/listenRec.js'/>"></script>
+<script type="text/javascript" src="<c:url value='/resources/js/common/comCounselSpec.js'/>"></script>
 
  			
 			<!-- 개인정보테이블 -->			
@@ -57,7 +57,8 @@
 							<td scope="row" class="line_rt" id="cmscsp_rcvDtText" style="width: 12%;">접수일시</td>
 							<td class="line_b" id="cmscsp_rcvDt" style="width: 23%;"></td>
 							<td scope="row" class="line_c" style="width: 12%;">민원인</td>
-							<td class="line_b" style="width: 24%;"><label id="cmscsp_custNm"></label><button type="button" id="cmscsp_btnTabCustSearch" class="button">수정</button></td>
+							<td class="line_b" style="width: 24%;"><label id="cmscsp_custNm"></label>
+<!-- 							<button type="button" id="cmscsp_btnTabCustSearch" class="button">수정</button></td> -->
 							<td scope="row" class="line_c">민원인구분</td>
 							<td class="line_b" id="cmscsp_cstType" style="width:27%;"></td>
 							<td scope="row" class="line_c" id="cmscsp_custCompText" style="width: 12%;">민원인성향</td>

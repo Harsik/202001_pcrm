@@ -112,27 +112,15 @@
                   
                   <thead>
                     <tr>
-                      <th></th>
-                      <th>분류</th>
-                      <th>전체 콜수</th>
-                      <th>지역 콜수</th>
-                      <th style="width: 30%"></th>
+                      <th style="width: 90px;">분류</th>
+                      <th colspan="2">지역 콜수</th>
+<!--                       <th style="width: 20%"></th> -->
+                      <th colspan="2">전체 콜수</th>
+<!--                       <th style="width: 20%"></th> -->
                     </tr>
                   </thead>
                   
                   <tbody>
-                  ㅇ
-					<c:forEach var="name" items="${ctgList}" varStatus="status">
-					    <p>${status.count} : <c:out value="${ctgLgNm}" /></p>
-					</c:forEach>
-
-                  	<c:forEach items="${ctgList }" var="item">
-					<tr>
-						<td><c:out value="${item.ctgLgNm}"/></td>
-						<td><c:out value="${item.totCnt}"/></td>
-						<td><c:out value="${item.addrCnt}"/></td>
-					</tr>
-					</c:forEach>
 					<!--
                     <tr>
                       <%-- <td><img src="<c:url value='/'/>bootstrap/img/Germany.png" style="height:18px; margin-top:-2px;"></td> --%>
@@ -331,7 +319,8 @@ function getLoc(id) {
 
 var markerHtml = '<div style="position: relative; top: $yy1px; left: $xx1px;">' 
 	+ '<img src="<c:url value="/"/>softdb/img/google-marker-$marker.png" style="width:$widpx"></img></div>'
-	+ '<div onclick="javascript:getLoc(\'$id\')" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
+// 	+ '<div onclick="javascript:getLoc(\'$id\')" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
+	+ '<div onclick="javascript:btn_OnClick(\'$id\');" ondblclick="btn_OnDbClick();" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
 	+ '<p>$cnt</p></div>';
 	
 function getMarkerDiv(id, xx, yy, cnt) {
@@ -415,6 +404,8 @@ function dataLoad() {
 						    if (el.name == result.result[j].hAddr) {
 						        idx = i;
 						        return true;
+						    }else{
+						    	idx = -1;
 						    }
 						});
 						
@@ -444,8 +435,9 @@ function dataLoad() {
 		
 }
 
+//카테고리별
 function showCtgList(){
-	//카테고리별 
+	$("#test > tbody").html("");
 	$.ajax({
 		url : '${pageContext.request.contextPath}/monitor/ajaxCtgList.do'
 		, data : { 'sigungu' : sigungu}
@@ -453,7 +445,30 @@ function showCtgList(){
 		, dataType: "json"
 		, success: function(result) {
 			console.log('> showCtgList ', result);
-			
+			var results = result.ctgList;
+// 			var str = '<TR>';
+			var str = "";
+            $.each(results , function(i){
+            	str += '<TR>';
+// 				str += '<TD class="grid_td"></TD>';
+				str += '<TD>' + results[i].ctgLgNm + '</TD>';
+				str += '<TD style="width: 60px;">' + results[i].addrCnt + '</TD>';
+				str += '<TD>';
+				str += '<div class="progress">';
+				str += '<div class="progress-bar progress-bar-striped progress-bar-info" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="color:#000000; width:'+results[i].addrPcnt+'%">';
+				str += results[i].addrPcnt;
+				str += '%</div></div>';
+				str += '</TD>';
+				str += '<TD style="width: 60px;">' + results[i].totCnt + '</TD>';
+				str += '<TD>';
+				str += '<div class="progress">';
+				str += '<div class="progress-bar progress-bar-striped progress-bar-warning" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="color:#000000; width:'+results[i].totPcnt+'%">';
+				str += results[i].totPcnt;
+				str += '%</div></div>';
+				str += '</TD>';
+				str += '</TR>';
+           });
+           $("#test").append(str); 
 		}
 		, error: function(data) {
 			console.log('> error ', data);
@@ -494,7 +509,9 @@ $(function() {
 		, success: function(result) {
 			console.log('> success ', result);
 			sigunguArr = result.result;
-			getLoc('a19');
+			getLoc('a19'); //비전1동으로 셋팅
+			//초기진입시 평택시 전체의 민원이 보이게 셋팅 (진행중..)
+// 			$("#air_name").html("평택시");
 		}
 		, error: function(data) {
 			console.log('> error ', data);
@@ -512,6 +529,56 @@ $(function() {
 $("tr").click(function() {
 	$("#subForm").submit();
 });
+
+
+// click event
+// 더블클릭 구분을 위한 변수
+var clickState = null;
+function btn_OnClick(id){
+	var clickId = id;
+	// 원클릭 구분
+	if(clickState == null){
+		clickState = setTimeout("btn_OnClick('"+clickId+"')", 200);
+	}else{
+// 		alert("원클릭=="+id);
+		getLoc(id);
+		ClearClickState();
+		
+		}
+}
+	 
+function btn_OnDbClick(){
+	ClearClickState();
+	popupEvent($("#subId").val());
+// 	alert($("#subId").val());
+// 	alert("더블클릭==");
+}
+	 
+function ClearClickState(){
+	clearTimeout(clickState);
+	clickState = null;
+}
+
+//상담이력 팝업
+function popupEvent(id){
+	
+	var width = 1250;
+	var height = 885;
+	var left = Math.ceil((window.screen.width - width)/2);
+	var top = Math.ceil((window.screen.height - height)/2);
+
+// 	var paramURL = getContextPath() + "/web/counsel/counselList.do?clickId="+id;
+// 	var paramURL = "http://" + location.host + "/web/counsel/counselList.do?clickId="+id;
+	var paramURL = "http://" + location.host + "/counsel/counselMain.do";
+	var option = "width=" + width + ", height=" + height
+		+ ", toolbar=no, directories=no, scrollbars=auto, location=no, resizable=no, status=no,menubar=no, top="
+		+ top + ",left=" + left +"";
+
+	var newWindow = window.open(paramURL, "상담이력", option);
+	newWindow.focus();	
+	
+}
+
     </script>
 
 </body>

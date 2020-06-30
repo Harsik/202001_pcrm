@@ -138,7 +138,7 @@ public class MonitoringController extends BaseController {
 	}
 	
 	@RequestMapping(value = "/monitor/ajaxCtgList.do")
-	public String ajaxCtgList(HttpServletRequest req, Model model, @RequestParam Map params) throws Exception {
+	public View ajaxCtgList(HttpServletRequest req, Model model, @RequestParam Map params) throws Exception {
 		try {
 			System.out.println("params : " + params);
 			List ctgList = monitoringService.selectCtgList(params);
@@ -149,7 +149,7 @@ public class MonitoringController extends BaseController {
 			e.printStackTrace();
 		}
 //		model.addAttribute("result", "true");
-		return  "softdb/monitor/MonitoringMapView";
+		return  jsonView;
 	}
 	
 	@RequestMapping(value = "/monitor/detailMain.do")

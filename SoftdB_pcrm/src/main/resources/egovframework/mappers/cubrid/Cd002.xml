@@ -17,57 +17,86 @@
     </select>
     
 	<select id="selectCtgList" parameterType="hashmap" resultType="egovMap">
-		SELECT
-			ctg_lg_nm,
-			totCnt,
-			(
-				SELECT
-					COUNT(*)
-				FROM
-					ch001 t1
-					LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
-				WHERE
-					t1.crt_dt = '20200619'
-<!-- 					t1.crt_dt = SYSDATE -->
-					AND h_addr =  (
-						SELECT
-							cd
-						FROM
-							sm002
-						WHERE
-							tp_cd = '98002'
-							AND ext1_cd = #{sigungu}
-					)
-					AND t1.ctg_lg_cd = a.ctg_lg_cd
-			) AS addrCnt
-		FROM
-			(
-				SELECT
-					ctg_lg_cd,
-					(
-						SELECT
-							ctg_cd_nm
-						FROM
-							om020
-						WHERE
-							ctg_cd = ctg_lg_cd
-					) AS ctg_lg_nm,
-					COUNT(*) AS totCnt
-				FROM
-					CH001 t1
-					LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
-				WHERE
-					t1.crt_dt > '20200619'
-<!-- 					t1.crt_dt > SYSDATE -->
-				GROUP BY
-					ctg_lg_cd
-				ORDER BY
-					totCnt DESC
-			) a
-			WHERE
-				ROWNUM BETWEEN 1 AND 5
+		WITH
+	"DATA" AS (
+		(
+			SELECT
+				ctg_lg_nm,
+				totCnt,
+				(
+					SELECT
+						COUNT(*)
+					FROM
+						ch001 t1
+						LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
+					WHERE
+						t1.crt_dt = '20200619'
+						AND h_addr = (
+							SELECT
+								cd
+							FROM
+								sm002
+							WHERE
+								tp_cd = '98002'
+								AND ext1_cd = #{sigungu}
+						)
+						AND t1.ctg_lg_cd = a.ctg_lg_cd
+				) AS addrCnt
+			FROM
+				(
+					SELECT
+						ctg_lg_cd,
+						(
+							SELECT
+								ctg_cd_nm
+							FROM
+								om020
+							WHERE
+								ctg_cd = ctg_lg_cd
+						) AS ctg_lg_nm,
+						COUNT(*) AS totCnt
+					FROM
+						CH001 t1
+						LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
+					WHERE
+						t1.crt_dt > '20200619'
+					GROUP BY
+						ctg_lg_cd
+					ORDER BY
+						totCnt DESC
+				) a
 			ORDER BY
-				addrCnt desc
+				addrCnt DESC
+		)
+		UNION ALL
+		SELECT
+			'합계',
+			COUNT(*) AS totCnt,
+			COUNT(CASE
+		WHEN (
+			h_addr=	(SELECT	cd	FROM sm002
+			WHERE
+				tp_cd = '98002'
+				AND ext1_cd = 'a19')
+		) THEN 1
+	END) AS addr
+		FROM
+			CH001 t1
+			LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
+		WHERE
+			t1.crt_dt > '20200619'
+	)
+	
+	SELECT 
+		ctg_lg_nm,
+		addrCnt,
+		TO_CHAR( (addrCnt / CAST((SELECT addrCnt FROM "DATA" WHERE ctg_lg_nm ='합계') AS DOUBLE) *100), '999.99') AS addrPcnt,
+		totCnt,
+		TO_CHAR( (totCnt / CAST((SELECT totCnt FROM "DATA" WHERE ctg_lg_nm ='합계') AS DOUBLE) *100), '999.99') AS totPcnt
+	FROM 
+		"DATA"
+	WHERE
+		ROWNUM BETWEEN 1 AND 5
 	</select>
 	
 	<select id="selectMainChartList" parameterType="hashmap" resultType="egovMap">

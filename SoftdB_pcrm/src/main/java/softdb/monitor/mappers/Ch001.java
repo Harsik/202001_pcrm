@@ -24,5 +24,14 @@ import egovframework.rte.psl.dataaccess.mapper.Mapper;
 public interface Ch001 {
 
 	List counsellist(Map map) throws Exception;
+	
+	List selectUserList(Map map) throws Exception;
+	
+	List selectCodeList(Map map) throws Exception;
+	
+	List selectCtgCodeList(Map map) throws Exception;
+	
+	List categoryObjList(Map map) throws Exception;
+	
 
 }

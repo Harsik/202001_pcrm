@@ -13,6 +13,7 @@
 						left join cm003 t3 on t1.cust_id = t3.cust_id
 						left join CH001 t4 on t4.tckt_id = t2.out_tckt_id
 						left join cd001 t5 on t5.TCKT_ID = t1.tckt_id
+						LEFT JOIN ch010 t6 ON t6.TCKT_ID = t1.tckt_id
 					WHERE 1 = 1
 					and t1.use_yn = 'Y'
 						<if test="cust_id != null and !cust_id.equals('')">
@@ -314,12 +315,15 @@
   						, t3.loc_yn
   						, '' AS TRNR_ACT_ST_NM
 						, NVL(T1.RDY_SCNT, 0) AS RDY_SCNT 
-						, t5.EXT1_CD as keywordcd 
+						, t5.EXT1_CD as keywordcd
+						, t6.h_addr
+						, t6.stt_rcg_rst
 					FROM CH001 t1
 						left join cm005 t2 on t1.tckt_id = t2.resv_reg_tckt_id
 						left join cm003 t3 on t1.cust_id = t3.cust_id
 						left join CH001 t4 on t4.tckt_id = t2.out_tckt_id
 						left join cd001 t5 on t5.TCKT_ID = t1.tckt_id
+						left join ch010 t6 ON t6.TCKT_ID = t1.tckt_id
 					WHERE 1 = 1
 						and t1.use_yn = 'Y'
 						<if test="cust_id != null and !cust_id.equals('')">
@@ -414,9 +418,6 @@
         </if>  
         )
 		WHERE 1 = 1
-				<if test="usrGrdCd lt 60100">
-					AND cntr_cd = (SELECT cntr_cd FROM om001 WHERE usr_id = #{login_usr_id})
-				</if>
 				<if test="sidx != null and sord != null">
 				ORDER BY ${sidx} ${sord}
 				</if>
@@ -533,6 +534,79 @@
         and NVL(T1.RDY_SCNT, 0) BETWEEN #{rdy_Scnt_Frm} AND #{rdy_Scnt_To}
     </if>  
 		)
+	</select>
+	
+	<select id="selectUserList" parameterType="map" resultType="egovMap">
+	   	SELECT
+			USR_ID,
+			USR_NM
+		FROM
+			om001 
+		WHERE
+			1 = 1
+			AND (
+				ret_dt IS NULL
+				OR ret_dt = ''
+			)
+			AND use_yn = 'Y'
+		ORDER BY
+			CNTR_CD,
+			USR_GRD_CD DESC,
+			USR_ID ASC
+	</select>
+	
+	<select id="selectCodeList" parameterType="map" resultType="egovMap">
+	   	SELECT
+			0,
+			cd,
+			cd_nm,
+			ext1_cd,
+			ext2_cd,
+			ext3_cd,
+			ext4_cd,
+			ext5_cd,
+			ext6_cd,
+			ext7_cd,
+			ext8_cd,
+			ext9_cd,
+			use_yn,
+			cd_ord,
+			crt_dt,
+			crt_tm,
+			mod_dt,
+			mod_tm
+		FROM
+			sm002
+		WHERE
+			1 = 1
+			AND tp_cd = #{tp_cd}
+			AND use_yn = 'Y'
+		ORDER BY
+			CD ASC;
+	</select>
+	
+	<select id="selectCtgCodeList" parameterType="map" resultType="egovMap">
+	   	SELECT
+	   		CTG_LVL,
+			CTG_CD AS CD,
+			ctg_cd_nm AS CD_NM,
+			cd_ord,
+			USE_YN
+		FROM
+			OM020
+		WHERE
+			1 = 1
+			AND CTG_LVL = # {categoryGb}
+			AND PARNT_CD = # {parntCd}
+			AND USE_YN = 'Y'
+	</select>
+	
+	<select id="categoryObjList" parameterType="map" resultType="egovMap">
+		SELECT
+		    PARNT_CD ,CTG_CD, ctg_cd_nm AS CD_NM, CTG_LVL, cd_ord, USE_YN,
+	        RANK() OVER (PARTITION BY CTG_LVL ORDER BY CTG_CD ) as RANK
+			FROM OM020 
+			WHERE 1=1  
 	</select>
 			
 </mapper>

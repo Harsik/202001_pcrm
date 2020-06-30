@@ -1074,6 +1074,7 @@ function setObjSelectBoxWithCode(selectId, allText, codeType, parentType, parent
 		 tempObj=window.parent.g_ObectCode[parentCode]; 
 	}else if(parentType.toUpperCase()=="CHILD"){
 		 tempObj=window.opener.g_ObectCode[parentCode]; 
+		 alert(tempObj);
 	}else if(parentType.toUpperCase()=="GCHILD"){
 		tempObj=window.opener.opener.g_ObectCode[parentCode];
 	}else if(parentType.toUpperCase()=="GGCHILD"){
@@ -1251,18 +1252,21 @@ function setCategoryCodeListToObject2(fID, allText, startValue, maingb)
 {
 var parentObectCode={}; // 코드 변수		
 	var value = "";
+	var dataArr = [];
 	// 초기 코드 가져오기
 	$.ajax({
 		type : "post",
 		async : true,
-		url : getContextPath() + "/ajax/main/CommonSetObjList.do",
-		data : "pJson=" + getJsonStrCategoryOBJListSet("allseq"),
+		url : "/ajax/main/CommonSetObjList.do",
+		data : dataArr,
 		success : function(data)
-		{
+		{	
+			var data = data.result;
 			if(jr != '')
 			{
 				// param값을 JSON으로 파싱
-				var jr = JSON.parse(data);
+//				var jr = JSON.parse(data);
+				var jr = data;
 				
 				var arrVal=new Array();
 				var obectDetail=new Object();
@@ -1272,23 +1276,35 @@ var parentObectCode={}; // 코드 변수
 				{
 					var i =0;
 					
-					if(objKey != val.PARNT_CD){
+//					if(objKey != val.PARNT_CD){
+					if(objKey != val.parntCd){
 						obectDetail={};
 					}
-					 objKey =val.PARNT_CD;
+//					 objKey =val.PARNT_CD;
+					 objKey =val.parntCd;
 					
-							var objCildkey =val.CTG_CD;
-							var objCildTp_cd=val.PARNT_CD;
+//							var objCildkey =val.CTG_CD;
+//							var objCildTp_cd=val.PARNT_CD;
+							var objCildkey =val.ctgCd;
+							var objCildTp_cd=val.parntCd;
 							var arrObjDtail = {};
 							var objDtail = {};
 							 
 									objDtail={
+										"parnt_cd" : val.parntCd,
+										"cd"    : val.ctgCd,
+										"cd_nm" : val.cdNm,
+										"ctg_lvl" : val.ctgLvl,
+										"cd_ord" : val.cdOrd,
+										"use_yn" : val.useYn ,
+										/*
 										"parnt_cd" : val.PARNT_CD,
 										"cd"    : val.CTG_CD,
 										"cd_nm" : val.CD_NM,
 										"ctg_lvl" : val.CTG_LVL,
 										"cd_ord" : val.CD_ORD,
 										"use_yn" : val.USE_YN 
+										*/
 									};
 	
 					obectDetail[objCildkey]= objDtail;
@@ -1299,16 +1315,7 @@ var parentObectCode={}; // 코드 변수
 			}
 			g_IntvObectCode=parentObectCode;
 			if(maingb=="Main"){
-	 			setObjectSelectBoxWithCode2("selMainIntvLgCd", "선택", "1", "", "00000000", "", "CHANGE");	// 상담유형 대분류 셋팅 20000000
-	 			//$("#selMainIntvLgCd").val("20010000").trigger("change");
-	 			//$("#selMainIntvMdCd").val("20011200").trigger("change");
-	 			//$("#selMainIntvSmCd").val("20011201");
-
-                //setObjectSelectBoxWithCode2("selCnslSrchIntvExCd", "전체", "1", "", "00000000", "","CHANGE");	// 상담유형 대분류 셋팅
-	 			setObjectSelectBoxWithCode2("selCnslSrchIntvLgCd", "전체", "1", "", "00000000", "","CHANGE");	// 상담유형 대분류 셋팅
-	 			setObjectSelectBoxWithCode2("optCounselKnd1", "전체", "1", "", "00000000", "", "CHANGE");	// 상담유형 대분류 셋팅
-                //setObjectSelectBoxWithCode2("intvExCd", "선택", "1", "", "00000000", "", "CHANGE");	// 상담유형 대분류 셋팅
-	 			setObjectSelectBoxWithCode2("intvLgCd", "선택", "1", "", "00000000", "", "CHANGE");	// 상담유형 대분류 셋팅
+	 			setObjectSelectBoxWithCode2("cslist_selSrchIntvLgCd", "선택", "1", "", "00000000", "", "CHANGE");	// 상담유형 대분류 셋팅 20000000
 	 		}else if(maingb=="N"){
 				setObjectSelectBoxWithCode2(fID, allText, "1", "", "", startValue, "");	// 상담유형 대분류 셋팅
 			}
