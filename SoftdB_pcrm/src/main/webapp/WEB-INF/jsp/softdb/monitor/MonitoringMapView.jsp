@@ -319,8 +319,8 @@ function getLoc(id) {
 
 var markerHtml = '<div style="position: relative; top: $yy1px; left: $xx1px;">' 
 	+ '<img src="<c:url value="/"/>softdb/img/google-marker-$marker.png" style="width:$widpx"></img></div>'
-// 	+ '<div onclick="javascript:getLoc(\'$id\')" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
-	+ '<div onclick="javascript:btn_OnClick(\'$id\');" ondblclick="btn_OnDbClick();" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
+	+ '<div onclick="javascript:getLoc(\'$id\')" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
+// 	+ '<div onclick="javascript:btn_OnClick(\'$id\');" ondblclick="btn_OnDbClick();" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
 	+ '<p>$cnt</p></div>';
 	
 function getMarkerDiv(id, xx, yy, cnt) {
@@ -356,11 +356,15 @@ function dataLoad() {
 	var nowDate = new Date();
 	$("#air_year").text( nowDate.getFullYear() + '.');
 	var temp = nowDate.getMonth() + 1;
+	var nowDay = nowDate.getDate();
+	if(nowDay<10){
+		nowDay = '0'+nowDay;
+	}
 	if(temp < 10 ) {
-		$("#air_date").text( '0' + temp +'.'+ nowDate.getDate());
+		$("#air_date").text( '0' + temp +'.'+ nowDay);
 	}
 	else {
-		$("#air_date").text( temp +'.'+ nowDate.getDate());
+		$("#air_date").text( temp +'.'+ nowDay);
 	}
 	
 	temp = nowDate.getHours();
@@ -520,15 +524,19 @@ $(function() {
 	
 // 	getLoc('a19');
 	
-	// hhs 20.06.23 5초마다 refresh stop
-//  	setInterval(function() {
-//  		dataLoad();
-//  	}, 5000);
+// 	hhs 20.06.23 5초마다 refresh stop
+ 	setInterval(function() {
+ 		dataLoad();
+ 	}, 5000);
 });
+
+/*
+ // tr클릭시 디테일 화면으로 이동 막음
 
 $("tr").click(function() {
 	$("#subForm").submit();
 });
+*/
 
 
 // click event
@@ -562,8 +570,8 @@ function ClearClickState(){
 //상담이력 팝업
 function popupEvent(id){
 	
-	var width = 1250;
-	var height = 885;
+	var width = 1200;
+	var height = 1000;
 	var left = Math.ceil((window.screen.width - width)/2);
 	var top = Math.ceil((window.screen.height - height)/2);
 
