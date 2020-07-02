@@ -419,13 +419,14 @@ function dataLoad() {
 				// Chrome Version
 // 				var idx = sigunguArr.findIndex(obj => obj.id == $("#subId").val()); 
 				// IE Version - IE에선 findIndex 지원하지 않는다.
+				var idx2 = 0;
 				sigunguArr.some(function(el, i) {
 					if (el.id == $("#subId").val()) {
-					    idx = i;
+					    idx2 = i;
 					    return true;
 					}
 				});
-				$("#addrtCnt").html(sigunguArr[idx].cnt);  //지역 카운트
+				$("#addrtCnt").html(sigunguArr[idx2].cnt);  //지역 카운트
 				
 				$("#totCnt").html(result.result.slice(-1)[0].cnt);  //합계 카운드
 				showCtgList();
