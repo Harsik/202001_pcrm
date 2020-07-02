@@ -30,7 +30,7 @@
 						ch001 t1
 						LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
 					WHERE
-						t1.crt_dt = '20200619'
+						t1.crt_dt = sysdate
 						AND h_addr = (
 							SELECT
 								cd
@@ -59,7 +59,7 @@
 						CH001 t1
 						LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
 					WHERE
-						t1.crt_dt > '20200619'
+						t1.crt_dt = sysdate
 					GROUP BY
 						ctg_lg_cd
 					ORDER BY
@@ -77,14 +77,14 @@
 			h_addr=	(SELECT	cd	FROM sm002
 			WHERE
 				tp_cd = '98002'
-				AND ext1_cd = 'a19')
+				AND ext1_cd = #{sigungu})
 		) THEN 1
 	END) AS addr
 		FROM
 			CH001 t1
 			LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
 		WHERE
-			t1.crt_dt > '20200619'
+			t1.crt_dt = sysdate
 	)
 	
 	SELECT 
