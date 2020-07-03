@@ -122,6 +122,7 @@
 							WHERE
 								tp_cd = '98002'
 						)
+						and crt_dt = sysdate
 					GROUP BY
 						h_addr
 				)
@@ -137,6 +138,7 @@
 				ch010
 			WHERE
 				1 = 1
+				and crt_dt = sysdate
 
 		]]>
 	</select>
