@@ -17,6 +17,7 @@
         <ul class="nav pull-right top-menu">
 
           <!-- alert notification start-->
+          <!-- 
           <li id="alert_notificatoin_bar" class="dropdown">
             <a data-toggle="dropdown" class="dropdown-toggle" href="#">
 
@@ -61,6 +62,7 @@
               </li>
             </ul>
           </li>
+          -->
           <!-- alert notification end-->
           <!-- user login dropdown start-->
           <li class="dropdown">

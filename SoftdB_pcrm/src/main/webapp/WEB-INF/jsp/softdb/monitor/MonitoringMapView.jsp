@@ -26,11 +26,11 @@
     <section id="main-content">
       <section class="wrapper">
       
-      	<div class="row">
-          <div class="col-lg-12">
-            <ol class="breadcrumb" style="height:50px"> <h3 class="page-header"><i class="fa fa-laptop"></i> Dashboard</h3></ol>
-          </div>
-        </div>
+<!--       	<div class="row"> -->
+<!--           <div class="col-lg-12"> -->
+<!--             <ol class="breadcrumb" style="height:50px"> <h3 class="page-header"><i class="fa fa-laptop"></i> Dashboard</h3></ol> -->
+<!--           </div> -->
+<!--         </div> -->
       
         <div class="row">
         
@@ -78,7 +78,7 @@
 							<div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
 					            <div class="info-box brown-bg">
 									<i class="fa fa-phone"></i>
-									<div class="count" id="totCnt" style="color:black">2,674</div>
+									<div class="count" id="totCnt" style="color:black">0</div>
 									<br>
 									<div class="title">전체 민원 수</div>
 					            </div>
@@ -89,7 +89,7 @@
 					          <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
 					            <div class="info-box green-bg">
 									<i class="fa fa-comments-o"></i>
-									<div class="count" id="addrtCnt" style="color:black">538</div>
+									<div class="count" id="addrtCnt" style="color:black">0</div>
 									<br>
 									<div id="air_name2" class="title">비전1동</div>
 					            </div>
@@ -319,8 +319,8 @@ function getLoc(id) {
 
 var markerHtml = '<div style="position: relative; top: $yy1px; left: $xx1px;">' 
 	+ '<img src="<c:url value="/"/>softdb/img/google-marker-$marker.png" style="width:$widpx"></img></div>'
-	+ '<div onclick="javascript:getLoc(\'$id\')" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
-// 	+ '<div onclick="javascript:btn_OnClick(\'$id\');" ondblclick="btn_OnDbClick();" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
+// 	+ '<div onclick="javascript:getLoc(\'$id\')" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
+	+ '<div onclick="javascript:btn_OnClick(\'$id\');" ondblclick="btn_OnDbClick();" style="position: relative; top: $yy2px; left: $xx2px; font-weight:bold; font-size: $fsizepx; color:black; text-align: center;">'
 	+ '<p>$cnt</p></div>';
 	
 function getMarkerDiv(id, xx, yy, cnt) {
@@ -422,7 +422,7 @@ function dataLoad() {
 				var idx2 = 0;
 				sigunguArr.some(function(el, i) {
 					if (el.id == $("#subId").val()) {
-					    idx2 = i;
+						idx2 = i;
 					    return true;
 					}
 				});
@@ -528,7 +528,7 @@ $(function() {
 // 	hhs 20.06.23 5초마다 refresh stop
  	setInterval(function() {
  		dataLoad();
- 	}, 5000);
+ 	}, 30000);
 });
 
 /*
@@ -558,7 +558,7 @@ function btn_OnClick(id){
 	 
 function btn_OnDbClick(){
 	ClearClickState();
-	popupEvent($("#subId").val());
+	popupEvent($("#subId").val(),$("#air_name2").html());
 // 	alert($("#subId").val());
 // 	alert("더블클릭==");
 }
@@ -569,16 +569,18 @@ function ClearClickState(){
 }
 
 //상담이력 팝업
-function popupEvent(id){
+function popupEvent(id,name){
 	
 	var width = 1200;
-	var height = 1000;
+	var height = 900;
 	var left = Math.ceil((window.screen.width - width)/2);
 	var top = Math.ceil((window.screen.height - height)/2);
 
 // 	var paramURL = getContextPath() + "/web/counsel/counselList.do?clickId="+id;
 // 	var paramURL = "http://" + location.host + "/web/counsel/counselList.do?clickId="+id;
-	var paramURL = "http://" + location.host + "/counsel/counselMain.do";
+// 	var paramURL = "http://" + location.host + "/counsel/counselMain.do";
+// 	var paramURL = "http://localhost:8080/web/counsel/counselListPcrm.do";
+	var paramURL = "http://localhost:8080/web/counsel/counselListPcrm.do?selAddr="+id+"&selAddrNm="+encodeURI(name);
 	var option = "width=" + width + ", height=" + height
 		+ ", toolbar=no, directories=no, scrollbars=auto, location=no, resizable=no, status=no,menubar=no, top="
 		+ top + ",left=" + left +"";
