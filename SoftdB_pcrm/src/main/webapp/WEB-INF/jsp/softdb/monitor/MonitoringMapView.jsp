@@ -329,6 +329,7 @@ function getMarkerDiv(id, xx, yy, cnt) {
 	if(count < 1) {
 		return '';
 	}
+	/*
 	if(count < 10) {
 		return markerHtml.replace('$xx1', xx+8 ).replace('$yy1', yy-38 )
 		.replace('$xx2', xx+8 ).replace('$yy2', yy-75 )
@@ -336,6 +337,7 @@ function getMarkerDiv(id, xx, yy, cnt) {
 		.replace('$wid', 25).replace('$fsize', 17 )
 		.replace('$cnt', (count > 99) ? '99+' : count);
 	} 
+	*/
 	if(count > 99) {
 		return markerHtml.replace('$xx1', xx).replace('$yy1', yy-80 )
 		.replace('$xx2', xx).replace('$yy2', yy-150 )
