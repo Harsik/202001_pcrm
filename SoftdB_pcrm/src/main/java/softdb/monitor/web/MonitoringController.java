@@ -68,7 +68,9 @@ public class MonitoringController extends BaseController {
 //		System.out.println(">>> gProperty endUrl : " +  endUrl);
 		if (!checkAuthority(req, model)) {
 			String reqUsrId = req.getParameter("reqUsrId");
+			String reqUsrNm = req.getParameter("reqUsrNm"); //20.07.08 name 추가
 			System.out.println(">>> reqUsrId : " + reqUsrId);
+			System.out.println(">>> reqUsrNm : " + reqUsrNm);
 			String referer = req.getHeader("referer");
 			System.out.println(">>> referer : " + referer);	// http://localhost:8080/web/civilservice/civilServiceWork.do
 			
@@ -78,6 +80,7 @@ public class MonitoringController extends BaseController {
 				// login 처리
 				LoginVO resultVO = new LoginVO();
 				resultVO.setUsrId(reqUsrId);
+				resultVO.setUsrNm(reqUsrNm); //20.07.08 name 추가
 				req.getSession().setAttribute("LoginVO", resultVO);
 				System.out.println("여기---------------"+resultVO);
 				return "/softdb/monitor/MonitoringMapView";

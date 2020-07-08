@@ -4,7 +4,7 @@
 @import url('https://fonts.googleapis.com/css?family=Montserrat:700&display=swap');
 
 /* #wrap {position: relative; width: 100%; min-height: 100%; box-sizing: border-box; min-width:1660px;} */
-#wrap {position: relative; width: 100%; min-height: 100%; box-sizing: border-box;}
+#wrap {position: relative; width: 100%; /*min-height: 100%;*/ box-sizing: border-box;}
 
 html, body{height:100%;}
 html, body, div, span, object, iframe,
@@ -1127,7 +1127,8 @@ footer .footer_infoWrap {
 	padding:10px 0 30px 0px;
 	position: relative;
 	clear:both;
-	height: 130px;
+/* 	height: 130px; */
+	height: 120px;
 }
 footer .wa_mark {position: absolute;right:0;top:0;}
 

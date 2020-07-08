@@ -3,12 +3,16 @@
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
 
 	<header class="header dark-bg">
+	<!-- side menu bar start -->
+	<!--  
       <div class="toggle-nav">
         <div class="icon-reorder tooltips" data-original-title="Toggle Navigation" data-placement="bottom"><i class="icon_menu"></i></div>
       </div>
+    -->
+    <!-- side menu bar end -->
 
       <!--logo start-->
-      <a href="https://www.pyeongtaek.go.kr" class="logo">평택시청 <span class="lite">PCRM</span></a>
+      <a href="https://www.pyeongtaek.go.kr" class="logo">평택시민원상담콜센터 <span class="lite">PCRM</span></a>
       <!--logo end-->
 
 
@@ -71,13 +75,17 @@
                                 <%-- <img alt="" src="<c:url value='/'/>bootstrap/img/avatar1_small.jpg"> --%>
                                 <img alt="" src="<c:url value='/'/>softdb/img/avatar-blank.svg" width="32px">
                             </span>
-                            <span class="username">${sessionScope.LoginVO.usrId} (${sessionScope.LoginVO.usrNm})</span>
+<%--                             <span class="username">${sessionScope.LoginVO.usrId} (${sessionScope.LoginVO.usrNm})</span> --%>
+                            <span class="username">${sessionScope.LoginVO.usrNm}</span>
                             <b class="caret"></b>
                         </a>
             <ul class="dropdown-menu extended logout">
               <div class="log-arrow-up"></div>
               <li>
-                <a href="<c:url value='/'/>softdb/actionLogout.do"><i class="icon_key_alt"></i> Log Out</a>
+<%--                 <a href="<c:url value='/'/>softdb/actionLogout.do"> --%>
+                <a href="javascript:window.close();">
+                <i class="icon_key_alt"></i> Log Out
+                </a>
               </li>
             </ul>
           </li>

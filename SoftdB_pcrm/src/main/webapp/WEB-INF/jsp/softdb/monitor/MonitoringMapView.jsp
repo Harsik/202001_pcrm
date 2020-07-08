@@ -103,7 +103,7 @@
               	</div>
               	<!-- // body map -->
               
-              <div class="panel-body">
+              <div class="panel-body" style="height: 590px;">
               
 	              <div class="row"> <br> </div>
 	              <div class="row"> <br> </div>
@@ -582,7 +582,7 @@ function popupEvent(id,name){
 // 	var paramURL = "http://" + location.host + "/web/counsel/counselList.do?clickId="+id;
 // 	var paramURL = "http://" + location.host + "/counsel/counselMain.do";
 // 	var paramURL = "http://localhost:8080/web/counsel/counselListPcrm.do";
-	var paramURL = "http://" + window.location.hostname + ":8080/web/counsel/counselListPcrm.do?selAddr="+id+"&selAddrNm="+encodeURI(name);
+	var paramURL = "http://" + window.location.hostname + ":9090/web/counsel/counselListPcrm.do?selAddr="+id+"&selAddrNm="+encodeURI(name);
 	var option = "width=" + width + ", height=" + height
 		+ ", toolbar=no, directories=no, scrollbars=auto, location=no, resizable=no, status=no,menubar=no, top="
 		+ top + ",left=" + left +"";

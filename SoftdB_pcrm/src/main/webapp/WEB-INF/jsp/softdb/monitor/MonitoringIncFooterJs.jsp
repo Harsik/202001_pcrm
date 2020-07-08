@@ -12,12 +12,6 @@
 						<span class="call">031)8024-5000</span>
 					</dd>
 				</dl>
-				<dl class="centreInfo">
-					<dt>수화상담(농아인)</dt>
-					<dd>
-						<span class="call">070) 7947-3939</span>
-					</dd>
-				</dl>
 			</div>
 
 			<div class="addressInfo cleB">
