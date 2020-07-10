@@ -8,7 +8,6 @@ import javax.annotation.Resource;
 import org.springframework.stereotype.Service;
 
 import egovframework.rte.fdl.cmmn.EgovAbstractServiceImpl;
-import softdb.monitor.mappers.Cd002;
 import softdb.monitor.mappers.Ch001;
 import softdb.monitor.mappers.MainMapper;
 import softdb.monitor.service.MonitoringService;
@@ -32,9 +31,6 @@ public class MonitoringServiceImpl extends EgovAbstractServiceImpl implements Mo
 	@Resource(name="mainMapper")
 	private MainMapper main;
 	
-	@Resource(name="cd002")
-	private Cd002 cd002;
-	
 	@Resource(name="ch001")
 	private Ch001 ch001;
 
@@ -52,7 +48,7 @@ public class MonitoringServiceImpl extends EgovAbstractServiceImpl implements Mo
 
 	@Override
 	public List<?> selectMainChartList(Map map) throws Exception {
-		return cd002.selectMainChartList(map);
+		return main.selectMainChartList(map);
 	}
 	
 	@Override
@@ -63,12 +59,12 @@ public class MonitoringServiceImpl extends EgovAbstractServiceImpl implements Mo
 	//hhs codeList
 	@Override
 	public List selectCodeList(Map map) throws Exception {
-		return cd002.selectCodeList(map);
+		return main.selectCodeList(map);
 	}
 	
 	@Override
 	public List selectCtgList(Map map) throws Exception {
-		return cd002.selectCtgList(map);
+		return main.selectCtgList(map);
 	}
 	
 }

@@ -38,5 +38,11 @@ public interface MainMapper {
 	 * @exception
 	 */
 	int selectSampleListTotCnt(Map map);
+	
+	List<?> selectMainChartList(Map map) throws Exception;
+
+	List<?> selectCodeList(Map map);
+	
+	List<?> selectCtgList(Map map);
 
 }
