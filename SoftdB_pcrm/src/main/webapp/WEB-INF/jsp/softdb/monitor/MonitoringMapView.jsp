@@ -232,11 +232,11 @@
 							height: 100%;
 							width: 100%;
 							">
-								<div style="position: absolute;">
-									<div style="position: relative; top: 10px; left: 10px;">
-										<img src="<c:url value='/'/>softdb/img/img_ptcity_logo.jpg" style="width:130px">
-									</div>
-								</div>
+<!-- 								<div style="position: absolute;"> -->
+<!-- 									<div style="position: relative; top: 10px; left: 10px;"> -->
+<%-- 										<img src="<c:url value='/'/>softdb/img/img_ptcity_logo.jpg" style="width:130px"> --%>
+<!-- 									</div> -->
+<!-- 								</div> -->
 								
 								<div id="a01" style="position: absolute;"></div>
 								<div id="a02" style="position: absolute;"></div>
@@ -261,6 +261,7 @@
 								<div id="a21" style="position: absolute;"></div>
 								<div id="a22" style="position: absolute;"></div>
 								<div id="a23" style="position: absolute;"></div>
+								<div id="a99" style="position: absolute;"></div>
 							</div>
 		              </div>
 		              
