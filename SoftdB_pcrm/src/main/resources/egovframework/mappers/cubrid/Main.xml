@@ -63,7 +63,6 @@
 						LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
 					WHERE
 						t1.crt_dt = sysdate
-<!-- 						t1.crt_dt = '20200622' -->
 						AND h_addr = (
 							SELECT
 								cd
@@ -93,7 +92,6 @@
 						LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
 					WHERE
 						t1.crt_dt = sysdate
-<!-- 						t1.crt_dt = '20200622' -->
 					GROUP BY
 						ctg_lg_cd
 					ORDER BY
@@ -119,7 +117,6 @@
 			LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
 		WHERE
 			t1.crt_dt = sysdate
-<!-- 			t1.crt_dt = '20200622' -->
 	)
 	
 	SELECT 
@@ -144,7 +141,7 @@
 			FROM
 				(
 					SELECT
-						DECODE(h_addr, NULL, 'ERR', '', 'ERR', h_addr) AS h_addr,
+						(CASE WHEN spch_type IN ('0','1','2','9') THEN h_addr ELSE '기타' END) AS h_addr,
 						COUNT(*) AS cnt
 					FROM
 						ch010
@@ -157,7 +154,7 @@
 							WHERE
 								tp_cd = '98002'
 						)
-						and crt_dt = '20200622'
+						and crt_dt = sysdate
 					GROUP BY
 						h_addr
 				)
@@ -173,7 +170,7 @@
 				ch010
 			WHERE
 				1 = 1
-				and crt_dt = '20200622'
+				and crt_dt = sysdate
 
 		]]>
 	</select>
