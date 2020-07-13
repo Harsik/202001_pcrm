@@ -59,6 +59,12 @@ public class MonitoringController extends BaseController {
 	@Value(value="${ptcc.pcrm.referer.host}")
 	private String gRef;
 	
+	@Value(value="${ptcc.pcrm.referer.host2}")
+	private String gRef2;
+	
+	@Value(value="${ptcc.pcrm.referer.host3}")
+	private String gRef3;
+	
 	@Value("${ptcc.pcrm.referer.endUrl}")
 	private String endUrl;
 	
@@ -75,7 +81,7 @@ public class MonitoringController extends BaseController {
 			System.out.println(">>> referer : " + referer);	// http://localhost:8080/web/civilservice/civilServiceWork.do
 			
 			// PRCM 권한을 갖고 링크 타고 들어 온 경우
-			if(referer != null && referer.contains(gRef) && referer.endsWith(endUrl) && reqUsrId != null && !reqUsrId.equals("")) {
+			if(referer != null && (referer.contains(gRef) || referer.contains(gRef2) || referer.contains(gRef3))&& referer.endsWith(endUrl) && reqUsrId != null && !reqUsrId.equals("")) {
 				System.out.println("=====PRCM 권한을 갖고 링크 타고 들어 온 경우");
 				// login 처리
 				LoginVO resultVO = new LoginVO();
