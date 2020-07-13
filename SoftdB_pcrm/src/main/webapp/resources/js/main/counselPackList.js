@@ -591,7 +591,7 @@ function btnExcel_clickEvent()
 	
 	if(betweenDate > 30)
 	{
-		alert("30일이 넘는 기간은 엑셀로 다운로드 하실 수 있습니다.");
+		alert("30일이 넘는 기간은 엑셀로 다운로드 하실 수 없습니다.");
 		return;	
 	}
 	
