@@ -49,30 +49,27 @@
 	<select id="selectCtgList" parameterType="hashmap" resultType="egovMap">
 		/* MainMapper.selectCtgList
     	*/
-	    WITH
-	"DATA" AS (
+	    WITH "DATA" AS (
 		(
 			SELECT
 				ctg_lg_nm,
 				totCnt,
 				(
+				SELECT 
+					COUNT(*) 
+				FROM 
+					(
 					SELECT
-						COUNT(*)
+						CASE WHEN h_addr = (SELECT cd FROM sm002 WHERE tp_cd = '98002' AND cd = h_addr) THEN h_addr
+							ELSE '기타' END AS h_addr
 					FROM
 						ch001 t1
 						LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
 					WHERE
-						t1.crt_dt = sysdate
-						AND h_addr = (
-							SELECT
-								cd
-							FROM
-								sm002
-							WHERE
-								tp_cd = '98002'
-								AND ext1_cd = #{sigungu}
-						)
+						t1.crt_dt = sysdate 
 						AND t1.ctg_lg_cd = a.ctg_lg_cd
+					)
+				WHERE  h_addr = ( SELECT cd FROM sm002 WHERE tp_cd = '98002' AND ext1_cd = #{sigungu} )
 				) AS addrCnt
 			FROM
 				(
@@ -97,38 +94,37 @@
 					ORDER BY
 						totCnt DESC
 				) a
-			ORDER BY
-				addrCnt DESC
+				ORDER BY
+					addrCnt DESC
+				)
+			UNION ALL
+			SELECT
+				 '합계',
+				COUNT(*) AS totCnt,
+				COUNT(CASE WHEN ( h_addr = ( SELECT cd FROM sm002 WHERE tp_cd = '98002' AND ext1_cd = #{sigungu} ) ) THEN 1 END) AS addr
+			FROM 
+			(
+				SELECT
+					CASE WHEN h_addr = (SELECT cd FROM sm002 WHERE tp_cd = '98002' AND cd = h_addr) THEN h_addr
+					ELSE '기타' END AS h_addr
+				FROM
+					CH001 t1
+					LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
+				WHERE
+					t1.crt_dt = sysdate
+			)
 		)
-		UNION ALL
-		SELECT
-			'합계',
-			COUNT(*) AS totCnt,
-			COUNT(CASE
-		WHEN (
-			h_addr=	(SELECT	cd	FROM sm002
-			WHERE
-				tp_cd = '98002'
-				AND ext1_cd = #{sigungu})
-		) THEN 1
-	END) AS addr
-		FROM
-			CH001 t1
-			LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
-		WHERE
-			t1.crt_dt = sysdate
-	)
 	
-	SELECT 
-		ctg_lg_nm,
-		addrCnt,
-		TO_CHAR( (addrCnt / CAST((SELECT addrCnt FROM "DATA" WHERE ctg_lg_nm ='합계') AS DOUBLE) *100), '999.99') AS addrPcnt,
-		totCnt,
-		TO_CHAR( (totCnt / CAST((SELECT totCnt FROM "DATA" WHERE ctg_lg_nm ='합계') AS DOUBLE) *100), '999.99') AS totPcnt
-	FROM 
-		"DATA"
-	WHERE
-		ROWNUM BETWEEN 1 AND 5
+		SELECT 
+			ctg_lg_nm,
+			addrCnt,
+			TO_CHAR( (addrCnt / CAST((SELECT addrCnt FROM "DATA" WHERE ctg_lg_nm ='합계') AS DOUBLE) *100), '999.99') AS addrPcnt,
+			totCnt,
+			TO_CHAR( (totCnt / CAST((SELECT totCnt FROM "DATA" WHERE ctg_lg_nm ='합계') AS DOUBLE) *100), '999.99') AS totPcnt
+		FROM 
+			"DATA"
+		WHERE
+			ROWNUM BETWEEN 1 AND 5
 	</select>
 	
 	<select id="selectMainChartList" parameterType="hashmap" resultType="egovMap">
@@ -141,36 +137,27 @@
 			FROM
 				(
 					SELECT
-						(CASE WHEN spch_type IN ('0','1','2','9') THEN h_addr ELSE '기타' END) AS h_addr,
+						CASE WHEN h_addr = (SELECT cd FROM sm002 WHERE tp_cd = '98002' AND cd = h_addr) THEN h_addr
+						ELSE '기타' END AS h_addr,
 						COUNT(*) AS cnt
 					FROM
 						ch010
 					WHERE
-						h_addr IN (
-							SELECT
-								cd
-							FROM
-								sm002
-							WHERE
-								tp_cd = '98002'
-						)
-						and crt_dt = sysdate
+						crt_dt = sysdate
 					GROUP BY
 						h_addr
 				)
-			WHERE
-				1 = 1
 			GROUP BY
 				h_addr
 			UNION ALL
-			SELECT
-				'합계',
-				COUNT(*)
-			FROM
-				ch010
-			WHERE
-				1 = 1
-				and crt_dt = sysdate
+				SELECT
+					'합계',
+					COUNT(*)
+				FROM
+					ch010
+				WHERE
+					1 = 1
+					and crt_dt = sysdate
 
 		]]>
 	</select>
