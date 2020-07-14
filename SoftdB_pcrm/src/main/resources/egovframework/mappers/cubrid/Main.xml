@@ -52,7 +52,7 @@
 	    WITH "DATA" AS (
 		(
 			SELECT
-				ctg_lg_nm,
+				NVL(ctg_lg_nm,'기타') AS ctg_lg_nm,
 				totCnt,
 				(
 				SELECT 
