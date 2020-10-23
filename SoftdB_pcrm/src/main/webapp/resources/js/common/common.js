@@ -3056,3 +3056,7 @@ function reqPopup(width, height, url, title){
     var newWindow = window.open(paramURL, title, option);
     newWindow.focus();	
 }
+
+function numberFormat(inputNumber) {
+	return inputNumber.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
