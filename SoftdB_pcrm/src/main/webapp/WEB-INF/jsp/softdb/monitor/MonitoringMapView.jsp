@@ -12,7 +12,6 @@
   <meta name="keyword" content="Creative, Dashboard, Admin, Template, Theme, Bootstrap, Responsive, Retina, Minimal">
 
   <title>평택시청 PCRM</title>
-
   <%@include file="MonitoringIncHead.jsp" %>
   
 </head>
@@ -65,7 +64,7 @@
 							</p>
 						
 							<div class="air_info" id="bj_air_info">
-								<p class="info">오늘의 <span class="spot" id="air_name"> 비전1동</span> 민원현황</p>
+								<p class="info"><span id="todayText">오늘의</span><span class="spot" id="air_name"> 비전1동</span> 민원현황</p>
 								<ul>
 									<li></li>
 									<li>&nbsp;</li>
@@ -89,7 +88,7 @@
 					          <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12">
 					            <div class="info-box green-bg">
 									<i class="fa fa-comments-o"></i>
-									<div class="count" id="addrtCnt" style="color:black">0</div>
+									<div class="count" id="addrCnt" style="color:black">0</div>
 									<br>
 									<div id="air_name2" class="title">비전1동</div>
 					            </div>
@@ -105,8 +104,31 @@
               
               <div class="panel-body" style="height: 590px;">
               
-	              <div class="row"> <br> </div>
-	              <div class="row"> <br> </div>
+	          <div class="row"> <br> </div>
+<!-- 	          <div class="row"> <br> </div> -->
+	          
+	          <div id="search" style="height: 42px;">
+			          <table class="search_tbl">
+			            <tr>
+			              <td>
+				              <select id="optState" style="width: 100px; height: 23px; padding-right: 5px;">
+	                        	<option value = "0"  selected="selected">실시간</option>
+	                            <option value = "1">기간설정</option>
+	                          </select>
+                          
+	                          <div id="dvDate" style="padding-left: 10px; display: inline;">
+				                <input type="text" class="text_Date" readonly="readonly" id="srcCnslFrDate" maxlength="10" style="height: 25px; width:100px;"> ~ 
+				                <input type="text" class="text_Date" readonly="readonly" id="srcCnslToDate" maxlength="10" style="height: 25px; width:100px;"> 
+				              </div>
+			              </td>
+			              
+			              <td class="btn">
+			              	<button id="btnCnslSearch" class="button">조회</button>
+			              	<button id="btnCnslInit" class="button">초기화</button>
+			              </td>
+			            </tr>
+			          </table>
+			 </div>
 	              
                 <table class="table bootstrap-datatable countries" id="test">
                   
@@ -289,7 +311,6 @@
 <%@include file="MonitoringIncFooterJs.jsp" %>
     
     <script>
-
       //carousel
       $(document).ready(function() {
         $("#owl-slider").owlCarousel({
@@ -298,6 +319,19 @@
           paginationSpeed: 400,
           singleItem: true
         });
+        
+        fnChangeState();
+        
+        drawMap();
+        
+      	// 조회조건 change 이벤트
+        $("#optState").bind("change", fnChangeState);
+        
+        // 조회버튼 클릭 이벤트
+        $("#btnCnslSearch").bind("click", dataLoad);
+        
+        // 초기화버튼 클릭 이벤트
+        $("#btnCnslInit").bind("click", init);
       });
 
       //custom select box
@@ -305,7 +339,31 @@
       $(function() {
         $('select.styled').customSelect();
       });
-
+	
+      function init(){
+    		// 날짜 세팅
+    		datePicker("#srcCnslFrDate");
+    		datePicker("#srcCnslToDate");
+    		$("#srcCnslFrDate").val(getDate());
+    		$("#srcCnslToDate").val(getDate());
+    		$("#totCnt,#addrCnt").text("0");
+    		drawMap();
+      }
+      
+      function fnChangeState(){
+    	  if($("#optState").val()==0){
+    		  $("#dvDate").hide();
+    		  $(".btn").hide();
+    		  init();
+    		  refreshStart();
+    	  }else{
+    		  $("#dvDate").show();
+    		  $(".btn").show();
+    		  init();
+    		  refreshStop();
+    	  }
+      }
+      
 function getLoc(id) {
 	sigungu = id;
 	for(var i=0; i<sigunguArr.length; i++) {
@@ -356,6 +414,7 @@ function getMarkerDiv(id, xx, yy, cnt) {
 }
 
 function dataLoad() {
+	if($("#optState").val()==0){
 	var nowDate = new Date();
 	$("#air_year").text( nowDate.getFullYear() + '.');
 	var temp = nowDate.getMonth() + 1;
@@ -389,6 +448,14 @@ function dataLoad() {
 	
 	$("#air_name").text( sigunguName );
 	$("#air_name2").text( sigunguName );
+	$("#air_year,#air_time,#todayText").show();
+	}else{
+		var date = $("#srcCnslFrDate").val()+" ~ "+$("#srcCnslToDate").val();
+		$("#air_year,#air_time,#todayText").hide();
+		$("#air_date").text(date);
+		$("#air_name").text( sigunguName );
+		$("#air_name2").text( sigunguName );
+	}
 	
 	for(var i=0; i<sigunguArr.length; i++) {
  		$("#" + sigunguArr[i].id).empty();
@@ -396,11 +463,17 @@ function dataLoad() {
 	
 		$.ajax({
 			url : '${pageContext.request.contextPath}/monitor/ajaxRtData.do'
-			, data : { 'sigungu' : sigungu}
+			, data : { 
+				'sigungu' : sigungu,
+				'startDt' : $("#srcCnslFrDate").val().replace(/-/gi, ""),
+				'endDt' : $("#srcCnslToDate").val().replace(/-/gi, "")
+				}
 			, type: 'post'
 			, dataType: "json"
 			, success: function(result) {
 				console.log('> success ', result);
+				$("#test > tbody").html(""); // 분류 테이블 초기화
+				if(result.result.length > 1){ // data != null
 				var idx = 0;
 				for(var i=0; i<sigunguArr.length; i++){
 					for(var j=0; j<result.result.length; j++){
@@ -429,54 +502,56 @@ function dataLoad() {
 					    return true;
 					}
 				});
-				$("#addrtCnt").html(sigunguArr[idx2].cnt);  //지역 카운트
-				
-				$("#totCnt").html(result.result.slice(-1)[0].cnt);  //합계 카운드
-				showCtgList();
+				$("#addrCnt").html(numberFormat(sigunguArr[idx2].cnt));  //지역 카운트
+				$("#totCnt").html(numberFormat(result.result.slice(-1)[0].cnt));  //합계 카운드
+// 				showCtgList();
 				showMarker();
+				}
 			}
 			, error: function(data) {
-				console.log('> error ', data);
 			}
 	    });
 		
-		
+		showCtgList();
 }
 
 //카테고리별
 function showCtgList(){
-	$("#test > tbody").html("");
 	$.ajax({
 		url : '${pageContext.request.contextPath}/monitor/ajaxCtgList.do'
-		, data : { 'sigungu' : sigungu}
+		, data : { 'sigungu' : sigungu,
+			'startDt' : $("#srcCnslFrDate").val().replace(/-/gi, ""),
+			'endDt' : $("#srcCnslToDate").val().replace(/-/gi, "")
+			}
 		, type: 'post'
 		, dataType: "json"
 		, success: function(result) {
 			console.log('> showCtgList ', result);
 			var results = result.ctgList;
-// 			var str = '<TR>';
-			var str = "";
-            $.each(results , function(i){
-            	str += '<TR>';
-// 				str += '<TD class="grid_td"></TD>';
-				str += '<TD>' + results[i].ctgLgNm + '</TD>';
-				str += '<TD style="width: 60px;">' + results[i].addrCnt + '</TD>';
-				str += '<TD>';
-				str += '<div class="progress">';
-				str += '<div class="progress-bar progress-bar-striped progress-bar-info" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="color:#000000; width:'+results[i].addrPcnt+'%">';
-				str += results[i].addrPcnt;
-				str += '%</div></div>';
-				str += '</TD>';
-				str += '<TD style="width: 60px;">' + results[i].totCnt + '</TD>';
-				str += '<TD>';
-				str += '<div class="progress">';
-				str += '<div class="progress-bar progress-bar-striped progress-bar-warning" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="color:#000000; width:'+results[i].totPcnt+'%">';
-				str += results[i].totPcnt;
-				str += '%</div></div>';
-				str += '</TD>';
-				str += '</TR>';
-           });
-           $("#test").append(str); 
+			if(result.ctgList.length > 1){
+				var str = "";
+	            $.each(results , function(i){
+	            	str += '<TR>';
+					str += '<TD>' + results[i].ctgLgNm + '</TD>';
+					str += '<TD style="width: 60px;">' + numberFormat(results[i].addrCnt) + '</TD>';
+					str += '<TD>';
+					str += '<div class="progress">';
+					str += '<div class="progress-bar progress-bar-striped progress-bar-info" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="color:#000000; width:'+results[i].addrPcnt+'%">';
+					str += results[i].addrPcnt;
+					str += '%</div></div>';
+					str += '</TD>';
+					str += '<TD style="width: 60px;">' + numberFormat(results[i].totCnt) + '</TD>';
+					str += '<TD>';
+					str += '<div class="progress">';
+					str += '<div class="progress-bar progress-bar-striped progress-bar-warning" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="color:#000000; width:'+results[i].totPcnt+'%">';
+					str += results[i].totPcnt;
+					str += '%</div></div>';
+					str += '</TD>';
+					str += '</TR>';
+	           });
+	           $("#test").append(str); 
+			}
+			//end if
 		}
 		, error: function(data) {
 			console.log('> error ', data);
@@ -506,9 +581,10 @@ function showMarker() {
 var sigungu = '';
 var sigunguName = '';
 var sigunguArr = [];
+var refreshId = null;
 
 // 지도 위에 마커 그리기
-$(function() {
+function drawMap() {
 	$.ajax({
 		url : '${pageContext.request.contextPath}/monitor/ajaxCodeList.do'
 		, data : JSON.stringify(sigunguArr)
@@ -525,14 +601,18 @@ $(function() {
 			console.log('> error ', data);
 		}
 	});
-	
-// 	getLoc('a19');
-	
-// 	hhs 20.06.23 5초마다 refresh stop
- 	setInterval(function() {
- 		dataLoad();
- 	}, 30000);
-});
+}
+
+function refreshStart(){
+	refreshId = setInterval(dataLoad, 30000);
+}
+
+function refreshStop() {
+    if(refreshId != null) {
+        clearInterval(refreshId);
+    }
+}
+
 
 /*
  // tr클릭시 디테일 화면으로 이동 막음
@@ -583,7 +663,8 @@ function popupEvent(id,name){
 // 	var paramURL = "http://" + location.host + "/web/counsel/counselList.do?clickId="+id;
 // 	var paramURL = "http://" + location.host + "/counsel/counselMain.do";
 // 	var paramURL = "http://localhost:8080/web/counsel/counselListPcrm.do";
-	var paramURL = "http://" + window.location.hostname + ":9090/web/counsel/counselListPcrm.do?selAddr="+id+"&selAddrNm="+encodeURI(name);
+ 	var paramURL = "http://" + window.location.hostname + ":9090/web/counsel/counselListPcrm.do?selAddr="+id+"&selAddrNm="+encodeURI(name);
+//	var paramURL = "http://" + window.location.hostname + ":8080/web/counsel/counselListPcrm.do?selAddr="+id+"&selAddrNm="+encodeURI(name);
 	var option = "width=" + width + ", height=" + height
 		+ ", toolbar=no, directories=no, scrollbars=auto, location=no, resizable=no, status=no,menubar=no, top="
 		+ top + ",left=" + left +"";

@@ -66,7 +66,9 @@
 						ch001 t1
 						LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
 					WHERE
-						t1.crt_dt = sysdate 
+						1=1
+						AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
+						AND t1.call_gb_cd != '2'
 						AND t1.ctg_lg_cd = a.ctg_lg_cd
 					)
 				WHERE  h_addr = ( SELECT cd FROM sm002 WHERE tp_cd = '98002' AND ext1_cd = #{sigungu} )
@@ -88,7 +90,9 @@
 						CH001 t1
 						LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
 					WHERE
-						t1.crt_dt = sysdate
+						1=1
+						AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
+						AND t1.call_gb_cd != '2'
 					GROUP BY
 						ctg_lg_cd
 					ORDER BY
@@ -111,16 +115,18 @@
 					CH001 t1
 					LEFT JOIN CH010 t2 ON t1.tckt_id = t2.tckt_id
 				WHERE
-					t1.crt_dt = sysdate
+					1=1
+					AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
+					AND t1.call_gb_cd != '2'
 			)
 		)
 	
 		SELECT 
-			ctg_lg_nm,
-			addrCnt,
-			TO_CHAR( (addrCnt / CAST((SELECT addrCnt FROM "DATA" WHERE ctg_lg_nm ='합계') AS DOUBLE) *100), '999.99') AS addrPcnt,
-			totCnt,
-			TO_CHAR( (totCnt / CAST((SELECT totCnt FROM "DATA" WHERE ctg_lg_nm ='합계') AS DOUBLE) *100), '999.99') AS totPcnt
+			ctg_lg_nm
+			,addrCnt
+			,TO_CHAR( (addrCnt / CAST( (DECODE((SELECT addrCnt FROM "DATA" WHERE ctg_lg_nm = '합계'),0,1,(SELECT addrCnt FROM "DATA" WHERE ctg_lg_nm = '합계')) ) AS DOUBLE) * 100 ), '999.99') AS addrPcnt
+			,totCnt
+			,TO_CHAR( (totCnt / CAST( (DECODE((SELECT totCnt FROM "DATA" WHERE ctg_lg_nm = '합계'),0,1,(SELECT totCnt FROM "DATA" WHERE ctg_lg_nm = '합계')) ) AS DOUBLE) * 100 ), '999.99') AS totPcnt
 		FROM 
 			"DATA"
 		WHERE
@@ -141,9 +147,12 @@
 						ELSE '기타' END AS h_addr,
 						COUNT(*) AS cnt
 					FROM
-						ch010
+						ch010 t1
+						LEFT JOIN ch001 t2 ON t1.tckt_id = t2.tckt_id
 					WHERE
-						crt_dt = sysdate
+						1=1
+						AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
+						AND t2.call_gb_cd != '2'
 					GROUP BY
 						h_addr
 				)
@@ -154,10 +163,12 @@
 					'합계',
 					COUNT(*)
 				FROM
-					ch010
+					ch010 t1
+					LEFT JOIN ch001 t2 ON t1.tckt_id = t2.tckt_id
 				WHERE
-					1 = 1
-					and crt_dt = sysdate
+					1=1
+					AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
+					AND t2.call_gb_cd != '2'
 
 		]]>
 	</select>

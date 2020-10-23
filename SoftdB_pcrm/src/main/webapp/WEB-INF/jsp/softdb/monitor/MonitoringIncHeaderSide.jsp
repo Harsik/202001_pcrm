@@ -1,7 +1,37 @@
 <%@ page contentType="text/html; charset=utf-8" pageEncoding="utf-8"%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
-
+<link rel="stylesheet" href="${pageContext.request.contextPath}/resources/js/lib/jquery-ui-custom/jquery-ui.css" type="text/css" />
+<script type="text/javascript" src="<c:url value='/resources/js/lib/jquery-2.1.1.min.js'/>"></script>
+<script type="text/javascript" src="<c:url value='/resources/js/lib/jquery-ui-custom/jquery-ui.js'/>"></script>
+<script type="text/javascript" src="<c:url value='/resources/js/common/common.js'/>"></script>
+<style>
+#search .btn {
+	float: right;
+	text-align: right;
+	right: 3px;
+}
+.button {
+	display: inline-block;
+	border-radius: 3px;
+	border: 1px solid #2b91dd;
+	line-height: 1;
+	padding: 3px 4px;
+	background: #0f71ba;
+	background: -moz-linear-gradient(top, #3fa4f0 0%, #0f71ba 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #3fa4f0), color-stop(100%, #0f71ba));
+	background: -webkit-linear-gradient(top, #3fa4f0 0%, #0f71ba 100%);
+	background: -o-linear-gradient(top, #3fa4f0 0%, #0f71ba 100%);
+	background: -ms-linear-gradient(top, #3fa4f0 0%, #0f71ba 100%);
+	background: linear-gradient(to bottom, #3fa4f0 0%, #0f71ba 100%);
+	font-family: 'Dotum', sans-serif;
+	font-size: 9pt;
+	text-align: center;
+	font-weight: bold;
+	color: #fff;
+	text-decoration: none;
+}
+</style>
 	<header class="header dark-bg">
 	<!-- side menu bar start -->
 	<!--  
