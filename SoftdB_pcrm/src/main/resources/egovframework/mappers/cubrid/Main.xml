@@ -68,7 +68,7 @@
 					WHERE
 						1=1
 						AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
-						AND t1.call_gb_cd != '2'
+						AND t1.use_yn = 'Y'
 						AND t1.ctg_lg_cd = a.ctg_lg_cd
 					)
 				WHERE  h_addr = ( SELECT cd FROM sm002 WHERE tp_cd = '98002' AND ext1_cd = #{sigungu} )
@@ -92,7 +92,7 @@
 					WHERE
 						1=1
 						AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
-						AND t1.call_gb_cd != '2'
+						AND t1.use_yn = 'Y'
 					GROUP BY
 						ctg_lg_cd
 					ORDER BY
@@ -117,7 +117,7 @@
 				WHERE
 					1=1
 					AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
-					AND t1.call_gb_cd != '2'
+					AND t1.use_yn = 'Y'
 			)
 		)
 	
@@ -147,12 +147,12 @@
 						ELSE '기타' END AS h_addr,
 						COUNT(*) AS cnt
 					FROM
-						ch010 t1
-						LEFT JOIN ch001 t2 ON t1.tckt_id = t2.tckt_id
+						ch001 t1
+						LEFT JOIN ch010 t2 ON t1.tckt_id = t2.tckt_id
 					WHERE
 						1=1
 						AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
-						AND t2.call_gb_cd != '2'
+						AND t1.use_yn = 'Y'
 					GROUP BY
 						h_addr
 				)
@@ -163,12 +163,12 @@
 					'합계',
 					COUNT(*)
 				FROM
-					ch010 t1
-					LEFT JOIN ch001 t2 ON t1.tckt_id = t2.tckt_id
+					ch001 t1
+					LEFT JOIN ch010 t2 ON t1.tckt_id = t2.tckt_id
 				WHERE
 					1=1
 					AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
-					AND t2.call_gb_cd != '2'
+					AND t1.use_yn = 'Y'
 
 		]]>
 	</select>
