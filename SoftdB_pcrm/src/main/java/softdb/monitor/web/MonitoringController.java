@@ -74,6 +74,14 @@ public class MonitoringController extends BaseController {
 	@Value("${ptcc.pcrm.referer.endUrl}")
 	private String endUrl;
 	
+	// 비디오월 전용 URL
+	@RequestMapping(value="/ptccpcrm.do")
+ 	public String monitoringHomeCsw (HttpServletRequest req, ModelMap model) throws Exception {
+		List list = monitoringService.selectMonitoringList(new HashMap());
+		System.out.println(">>> result " + list.toString());
+		return "/softdb/monitor/MonitoringMapViewCsw";
+	}
+	
 	@RequestMapping(value="/monitor/MonitoringMapView.do")
  	public String monitoringHome (HttpServletRequest req, ModelMap model) throws Exception {
 //		System.out.println(">>> gProperty referer : " +  gRef);
