@@ -395,19 +395,21 @@ function getMarkerDiv(id, xx, yy, cnt) {
 		.replace('$cnt', (count > 99) ? '99+' : count);
 	} 
 	*/
-	if(count > 99) {
+	if(count > 999) {
 		return markerHtml.replace('$xx1', xx).replace('$yy1', yy-80 )
 		.replace('$xx2', xx).replace('$yy2', yy-150 )
 		.replace('$marker', 'r').replace('$id', id)
-		.replace('$wid', 50).replace('$fsize', 22 )
-		.replace('$cnt', (count > 99) ? '99+' : count);
+// 		.replace('$wid', 50).replace('$fsize', 22 )
+		.replace('$wid', 50).replace('$fsize', 17 )
+		.replace('$cnt', (count > 999) ? '999+' : count);
 	}
 	else {
 		return markerHtml.replace('$xx1', xx).replace('$yy1', yy-60 )
 			.replace('$xx2', xx).replace('$yy2', yy-115 )
 			.replace('$marker', 'w').replace('$id', id)
-			.replace('$wid', 40).replace('$fsize', 22 )
-			.replace('$cnt', (count > 99) ? '99+' : count);
+// 			.replace('$wid', 40).replace('$fsize', 22 )
+			.replace('$wid', 40).replace('$fsize', 17 )
+			.replace('$cnt', (count > 999) ? '999+' : count);
 	}
 }
 
