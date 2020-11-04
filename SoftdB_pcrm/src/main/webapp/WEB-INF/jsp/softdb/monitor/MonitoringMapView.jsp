@@ -322,8 +322,6 @@
         
         fnChangeState();
         
-        drawMap();
-        
       	// 조회조건 change 이벤트
         $("#optState").bind("change", fnChangeState);
         
