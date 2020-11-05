@@ -42,7 +42,8 @@
     <!-- side menu bar end -->
 
       <!--logo start-->
-      <a href="https://www.pyeongtaek.go.kr" class="logo">평택시민원상담콜센터 <span class="lite">PCRM</span></a>
+<!--       <a href="https://www.pyeongtaek.go.kr" class="logo">평택시민원상담콜센터 <span class="lite">PCRM</span></a> -->
+      <a href="javascript:init();" class="logo">평택시민원상담콜센터 <span class="lite">PCRM</span></a>
       <!--logo end-->
 
 

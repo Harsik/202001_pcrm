@@ -89,8 +89,8 @@
 					            <div class="info-box green-bg">
 									<i class="fa fa-comments-o"></i>
 									<div class="count" id="addrCnt" style="color:black">0</div>
-									<br>
-									<div id="air_name2" class="title">비전1동</div>
+<!-- 									<br> -->
+									<div id="air_name2" class="title" style="margin-top:21px;">비전1동</div>
 					            </div>
 					            <!--/.info-box-->
 					          </div>
@@ -326,7 +326,11 @@
         $("#optState").bind("change", fnChangeState);
         
         // 조회버튼 클릭 이벤트
-        $("#btnCnslSearch").bind("click", dataLoad);
+        $("#btnCnslSearch").click(function(){
+        	initYn = "Y";
+        	sigungu = "";
+        	dataLoad();
+        });
         
         // 초기화버튼 클릭 이벤트
         $("#btnCnslInit").bind("click", init);
@@ -339,6 +343,8 @@
       });
 	
       function init(){
+    	  	initYn = "Y";
+    	  	
     		// 날짜 세팅
     		datePicker("#srcCnslFrDate");
     		datePicker("#srcCnslToDate");
@@ -363,6 +369,11 @@
       }
       
 function getLoc(id) {
+	if(id==""){
+		initYn="Y";
+	}else{
+		initYn="N";
+	}
 	sigungu = id;
 	for(var i=0; i<sigunguArr.length; i++) {
 		if(id == sigunguArr[i].id) {
@@ -460,11 +471,50 @@ function dataLoad() {
 	for(var i=0; i<sigunguArr.length; i++) {
  		$("#" + sigunguArr[i].id).empty();
  	}
+	$(".green-bg > table").remove(); // 평택시 상위 3개 테이블 초기화
+	if(initYn=="Y"){
+		$("#air_name").html("평택시");
+		$("#addrCnt").hide();
+		$("#air_name2").hide();
+		$.ajax({
+			url : '${pageContext.request.contextPath}/monitor/ajaxRtData.do'
+			, data : { 
+				'sigungu' : sigungu,
+				'initYn' : "Y",
+				'startDt' : $("#srcCnslFrDate").val().replace(/-/gi, ""),
+				'endDt' : $("#srcCnslToDate").val().replace(/-/gi, "")
+				}
+			, type: 'post'
+			, dataType: "json"
+			, success: function(result) {
+				console.log('> 평택시 상위 3개 지역 ', result);
+				var results = result.result;
+				if(result.result.length > 1){ // data != null
+					var str = "";
+					str += '<TABLE style="width: 143px;">';
+					$.each(results , function(i){
+						str += '<TR style="height: 33px;">';
+						str += '<TD style="padding-top: 4px; font-size: 18px; font-weight: 600;">' + results[i].hAddr + '</TD>';
+						str += '<TD style="text-align: left; color: black; font-size: 23px; font-weight: 700;">' + numberFormat(results[i].cnt) + '</TD>';
+						str += '</TR>';
+					});
+					str += '</TABLE>';
+					$(".green-bg").append(str); 
+				}
+			}
+			, error: function(data) {
+			}
+	    });
+	}else{
+		$("#addrCnt").show();
+		$("#air_name2").show();
+	}
 	
 		$.ajax({
 			url : '${pageContext.request.contextPath}/monitor/ajaxRtData.do'
 			, data : { 
 				'sigungu' : sigungu,
+				'initYn' : "N",
 				'startDt' : $("#srcCnslFrDate").val().replace(/-/gi, ""),
 				'endDt' : $("#srcCnslToDate").val().replace(/-/gi, "")
 				}
@@ -504,7 +554,6 @@ function dataLoad() {
 				});
 				$("#addrCnt").html(numberFormat(sigunguArr[idx2].cnt));  //지역 카운트
 				$("#totCnt").html(numberFormat(result.result.slice(-1)[0].cnt));  //합계 카운드
-// 				showCtgList();
 				showMarker();
 				}
 			}
@@ -582,6 +631,7 @@ var sigungu = '';
 var sigunguName = '';
 var sigunguArr = [];
 var refreshId = null;
+var initYn = "Y"; // load 초기 여부
 
 // 지도 위에 마커 그리기
 function drawMap() {
@@ -593,9 +643,8 @@ function drawMap() {
 		, success: function(result) {
 			console.log('> success ', result);
 			sigunguArr = result.result;
-			getLoc('a19'); //비전1동으로 셋팅
-			//초기진입시 평택시 전체의 민원이 보이게 셋팅 (진행중..)
-// 			$("#air_name").html("평택시");
+// 			getLoc('a19'); //비전1동으로 셋팅
+			getLoc(''); // 초기진입시 평택시 전체의 민원이 보이게 셋팅
 		}
 		, error: function(data) {
 			console.log('> error ', data);

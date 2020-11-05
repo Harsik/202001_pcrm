@@ -71,7 +71,9 @@
 						AND t1.use_yn = 'Y'
 						AND t1.ctg_lg_cd = a.ctg_lg_cd
 					)
+				<if test="sigungu != null and !sigungu.equals('')">
 				WHERE  h_addr = ( SELECT cd FROM sm002 WHERE tp_cd = '98002' AND ext1_cd = #{sigungu} )
+				</if>
 				) AS addrCnt
 			FROM
 				(
@@ -105,7 +107,12 @@
 			SELECT
 				 '합계',
 				COUNT(*) AS totCnt,
+				<if test="sigungu.equals('')">
+				COUNT(*) AS h_addr
+				</if>
+				<if test="!sigungu.equals('')">
 				COUNT(CASE WHEN ( h_addr = ( SELECT cd FROM sm002 WHERE tp_cd = '98002' AND ext1_cd = #{sigungu} ) ) THEN 1 END) AS addr
+				</if>
 			FROM 
 			(
 				SELECT
@@ -135,8 +142,10 @@
 	
 	<select id="selectMainChartList" parameterType="hashmap" resultType="egovMap">
 		/* MainMapper.selectMainChartList
-    	*/
-		<![CDATA[
+    	*/	
+    		<if test='initYn.equals("Y")'>
+    		SELECT h_addr,cnt FROM(
+    		</if>
 			SELECT
 				h_addr,
 				SUM(cnt) AS cnt
@@ -158,6 +167,13 @@
 				)
 			GROUP BY
 				h_addr
+			<if test='initYn.equals("Y")'>
+    		ORDER BY cnt desc)
+    		WHERE 1=1
+    		AND h_addr != '기타'
+    		AND rownum <![CDATA[ < ]]>4
+    		</if>
+    		<if test='initYn.equals("N")'>
 			UNION ALL
 				SELECT
 					'합계',
@@ -169,8 +185,7 @@
 					1=1
 					AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
 					AND t1.use_yn = 'Y'
-
-		]]>
+			</if>
 	</select>
 
 </mapper>
