@@ -144,7 +144,22 @@
 		/* MainMapper.selectMainChartList
     	*/	
     		<if test='initYn.equals("Y")'>
-    		SELECT h_addr,cnt FROM(
+    		WITH [data] AS (
+				SELECT
+					COUNT(*) AS cnt
+				FROM
+					ch001 t1
+					LEFT JOIN ch010 t2 ON t1.tckt_id = t2.tckt_id
+				WHERE
+					1 = 1
+					AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
+					AND t1.use_yn = 'Y'
+				)
+    		SELECT 
+    			h_addr,
+    			cnt,
+    			TO_CHAR( (cnt / CAST( (DECODE((SELECT cnt FROM [data]),0,1,(SELECT cnt FROM [data])) ) AS DOUBLE) * 100 ), '999.99') AS pcnt
+    		FROM(
     		</if>
 			SELECT
 				h_addr,
@@ -175,16 +190,16 @@
     		</if>
     		<if test='initYn.equals("N")'>
 			UNION ALL
-				SELECT
-					'합계',
-					COUNT(*)
-				FROM
-					ch001 t1
-					LEFT JOIN ch010 t2 ON t1.tckt_id = t2.tckt_id
-				WHERE
-					1=1
-					AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
-					AND t1.use_yn = 'Y'
+			SELECT
+				'합계',
+				COUNT(*)
+			FROM
+				ch001 t1
+				LEFT JOIN ch010 t2 ON t1.tckt_id = t2.tckt_id
+			WHERE
+				1=1
+				AND t1.crt_dt BETWEEN #{startDt} AND #{endDt}
+				AND t1.use_yn = 'Y'
 			</if>
 	</select>
 

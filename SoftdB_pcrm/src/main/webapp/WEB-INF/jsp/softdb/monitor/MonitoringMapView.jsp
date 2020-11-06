@@ -474,6 +474,7 @@ function dataLoad() {
 	$(".green-bg > table").remove(); // 평택시 상위 3개 테이블 초기화
 	if(initYn=="Y"){
 		$("#air_name").html("평택시");
+		$(".fa-comments-o").hide();
 		$("#addrCnt").hide();
 		$("#air_name2").hide();
 		$.ajax({
@@ -491,11 +492,17 @@ function dataLoad() {
 				var results = result.result;
 				if(result.result.length > 1){ // data != null
 					var str = "";
-					str += '<TABLE style="width: 143px;">';
+					str += '<TABLE>';
 					$.each(results , function(i){
 						str += '<TR style="height: 33px;">';
 						str += '<TD style="padding-top: 4px; font-size: 18px; font-weight: 600;">' + results[i].hAddr + '</TD>';
 						str += '<TD style="text-align: left; color: black; font-size: 23px; font-weight: 700;">' + numberFormat(results[i].cnt) + '</TD>';
+						str += '<TD>';
+						str += '<div class="progress">';
+						str += '<div class="progress-bar progress-bar-striped progress-bar-warning" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="color:#000000; font-weight: bold; width:'+results[i].pcnt+'%">';
+						str += results[i].pcnt;
+						str += '%</div></div>';
+						str += '</TD>';
 						str += '</TR>';
 					});
 					str += '</TABLE>';
@@ -506,6 +513,7 @@ function dataLoad() {
 			}
 	    });
 	}else{
+		$(".fa-comments-o").show();
 		$("#addrCnt").show();
 		$("#air_name2").show();
 	}
@@ -584,7 +592,7 @@ function showCtgList(){
 					str += '<TD>' + results[i].ctgLgNm + '</TD>';
 					str += '<TD style="width: 60px;">' + numberFormat(results[i].addrCnt) + '</TD>';
 					str += '<TD>';
-					str += '<div class="progress">';
+					str += '<div class="progress" style="margin-bottom: 20px;">';
 					str += '<div class="progress-bar progress-bar-striped progress-bar-info" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100" style="color:#000000; width:'+results[i].addrPcnt+'%">';
 					str += results[i].addrPcnt;
 					str += '%</div></div>';
