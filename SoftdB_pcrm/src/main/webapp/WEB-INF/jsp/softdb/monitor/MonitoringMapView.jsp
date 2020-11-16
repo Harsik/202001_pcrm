@@ -560,7 +560,11 @@ function dataLoad() {
 					    return true;
 					}
 				});
-				$("#addrCnt").html(numberFormat(sigunguArr[idx2].cnt));  //지역 카운트
+				if(sigunguArr[idx2].cnt == undefined && sigunguArr[idx2].cnt == null){
+					$("#addrCnt").html(numberFormat(0));  //지역 카운트
+				}else{
+					$("#addrCnt").html(numberFormat(sigunguArr[idx2].cnt));  //지역 카운트
+				}
 				$("#totCnt").html(numberFormat(result.result.slice(-1)[0].cnt));  //합계 카운드
 				showMarker();
 				}
