@@ -67,4 +67,9 @@ public class MonitoringServiceImpl extends EgovAbstractServiceImpl implements Mo
 		return main.selectCtgList(map);
 	}
 	
+	@Override
+	public List selectExcelList(Map map) throws Exception {
+		return main.selectExcelList(map);
+	}
+	
 }

@@ -124,6 +124,7 @@
 			              
 			              <td class="btn">
 			              	<button id="btnCnslSearch" class="button">조회</button>
+			              	<button id="btnCnslExcel" class="button">엑셀다운</button>
 			              	<button id="btnCnslInit" class="button">초기화</button>
 			              </td>
 			            </tr>
@@ -334,10 +335,40 @@
         
         // 초기화버튼 클릭 이벤트
         $("#btnCnslInit").bind("click", init);
+        
+        // 엑셀다운버튼 클릭 이벤트
+        $("#btnCnslExcel").bind("click", downloadExcel);
       });
-
+      
+      function downloadExcel(){
+    	  var startDt = $("#srcCnslFrDate").val().replace(/-/g, "");
+    	  var endDt = $("#srcCnslToDate").val().replace(/-/g, "");
+    	  
+    	  var param = {
+    		 	  "startDt" : startDt,
+    		 	  "endDt" 	: endDt,
+    		 	  "colHeader"	: ["구분", "합계", "시정일반", "문화", "복지", "교통", "민원행정", "세금예산", "보건위생",
+    		 		  			"지역경제", "도시주택",	"문화예술", "미군이전", "안전", "재정", "항만", "환경", "기타"],
+    		 	  "colName"	: ["구분", "합계", "시정일반", "문화", "복지", "교통", "민원행정", "세금예산", "보건위생",
+    		 		  			"지역경제", "도시주택",	"문화예술", "미군이전", "안전", "재정", "항만", "환경", "기타"],
+    		 	  "title"	:   "평택시 민원상담 콜센터 지역별 민원현황(" + startDt + "~" + endDt +")",
+    	  };
+    	  
+          var form = document.createElement("form");
+          form.setAttribute("method", "post");
+          form.action = '${pageContext.request.contextPath}/monitor/excelDownload.do';
+          
+          var hiddenField = document.createElement("input");
+	      hiddenField.setAttribute("type", "hidden");
+	      hiddenField.setAttribute("name", "excelDown");
+	      hiddenField.setAttribute("value", JSON.stringify(param));
+	      form.appendChild(hiddenField);
+	      document.body.appendChild(form);
+          
+	      form.submit();
+      }
+      
       //custom select box
-
       $(function() {
         $('select.styled').customSelect();
       });
@@ -357,12 +388,14 @@
       function fnChangeState(){
     	  if($("#optState").val()==0){
     		  $("#dvDate").hide();
-    		  $(".btn").hide();
+    		  $("#btnCnslSearch").hide();
+    		  $("#btnCnslInit").hide();
     		  init();
     		  refreshStart();
     	  }else{
     		  $("#dvDate").show();
-    		  $(".btn").show();
+    		  $("#btnCnslSearch").show();
+    		  $("#btnCnslInit").show();
     		  init();
     		  refreshStop();
     	  }

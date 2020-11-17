@@ -45,4 +45,6 @@ public interface MainMapper {
 	
 	List<?> selectCtgList(Map map);
 
+	List<?> selectExcelList(Map map);
+
 }

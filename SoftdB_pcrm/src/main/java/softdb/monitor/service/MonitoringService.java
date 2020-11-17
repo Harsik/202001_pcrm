@@ -33,4 +33,7 @@ public interface MonitoringService {
 	
 	public List selectCtgList(Map map) throws Exception;
 	
+	//20.11.12 excelDown
+	public List selectExcelList(Map map) throws Exception;
+	
 }
