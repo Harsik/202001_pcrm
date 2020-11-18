@@ -179,6 +179,16 @@
 						AND t1.use_yn = 'Y'
 					GROUP BY
 						h_addr
+						
+					UNION ALL
+					
+					SELECT 
+						cd, 0
+					FROM 
+						sm002
+					WHERE 
+						1=1
+						AND tp_cd = '98002'
 				)
 			GROUP BY
 				h_addr
